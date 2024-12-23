@@ -1,13 +1,10 @@
 #!/usr/bin/env sh
-chown -R root:root .
 
 # Main ISO image
-env BUILD_TAGS="release" LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
+env BUILD_TAGS="release" BUILD_DIR=/mnt/extra/finnix-build/ LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
 
 # Source ISO
 TEMP_DATA_DIR="$(mktemp -d -p "$(pwd)/build")"
-env SOURCE_ISO=true DATA_DIR="${TEMP_DATA_DIR?}" LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
+env SOURCE_ISO=true DATA_DIR="${TEMP_DATA_DIR?}" BUILD_DIR=/mnt/extra/finnix-build/ LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
 mv "${TEMP_DATA_DIR}/lb/finnix-source.iso" build/lb/
 rm -rf "${TEMP_DATA_DIR?}"
-
-chown -R "$(id -un):$(id -gn)" .
