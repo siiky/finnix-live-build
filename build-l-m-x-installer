@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+sudo chown -R root:root .
+
+# Main ISO image
+sudo env BUILD_TAGS="release" LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
+
+# Source ISO
+TEMP_DATA_DIR="$(sudo mktemp -d -p "$(pwd)/build")"
+sudo env SOURCE_ISO=true DATA_DIR="${TEMP_DATA_DIR?}" LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
+sudo mv "${TEMP_DATA_DIR}/lb/finnix-source.iso" build/lb/
+sudo rm -rf "${TEMP_DATA_DIR?}"
+
+sudo chown -R "$(id -un):$(id -gn)" .
