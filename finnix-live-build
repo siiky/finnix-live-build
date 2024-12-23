@@ -409,6 +409,12 @@ cp -a "${RENDER_DIR}/hook-files/." "${LB_DIR}/config/includes.chroot_after_packa
 mkdir -p "${LB_DIR}/config/package-lists"
 cp -a "${RENDER_DIR}/package-lists/." "${LB_DIR}/config/package-lists/"
 
+# Include l-m-x image and scripts
+if [ -d "${LAMASSU_EXTRAS}" ]; then
+    mkdir -p "${LB_DIR}/config/inclues.chroot_after_packages/opt/lamassu/"
+    cp -a "${LAMASSU_EXTRAS}"/* -t "${LB_DIR}/config/inclues.chroot_after_packages/opt/lamassu/"
+fi
+
 if [ "${is_dirty}" = "true" ]; then
     mkdir -p "${LB_DIR}/config/includes.binary/.disk"
     git -C "${BASE_DIR}" status >"${LB_DIR}/config/includes.binary/.disk/build-dirty.patch"
