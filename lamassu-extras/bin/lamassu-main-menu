@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+
+lamassu_bin_dir="$(dirname "$0")"
+
+TUI_OK=0
+
+tui() {
+	whiptail "$@" 3>&2 2>&1 1>&3 3>&-
+}
+
+tui_main_menu() {
+	tui --title 'Lamassu installer main menu' \
+		--menu 'What do you wish to do?  If you wish to install the Lamassu software on a machine, but are unsure on how to proceed, choose the "guided installer".' 0 0 0 \
+		guided "Launch the Lamassu guided installer" \
+		shell "Start a Bash shell" \
+		shutdown "Shut the machine down" \
+		reboot "Reboot the machine"
+}
+
+do_guided() {
+	"${lamassu_bin_dir}"/flash-image.sh guided "${lamassu_bin_dir}"/../image.img.gz
+}
+
+do_shell() {
+	/bin/bash
+}
+
+do_shutdown() {
+	shutdown -h now
+}
+
+do_reboot() {
+	reboot
+}
+
+while true; do
+	action="$(tui_main_menu)"
+	case $? in
+		"$TUI_OK") "do_${action}";;
+		*);;
+	esac
+done
