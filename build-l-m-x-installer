@@ -1,11 +1,3 @@
 #!/usr/bin/env sh
 set -e
-
-# Main ISO image
 env BUILD_TAGS="release" BUILD_DIR=/mnt/extra/finnix-build/ LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
-
-# Source ISO
-TEMP_DATA_DIR="$(mktemp -d -p "$(pwd)/build")"
-env SOURCE_ISO=true DATA_DIR="${TEMP_DATA_DIR?}" BUILD_DIR=/mnt/extra/finnix-build/ LAMASSU_EXTRAS=/mnt/extra/lamassu-extras/ ./finnix-live-build
-mv "${TEMP_DATA_DIR}/lb/finnix-source.iso" "${BUILD_DIR}/lb/"
-rm -rf "${TEMP_DATA_DIR?}"
