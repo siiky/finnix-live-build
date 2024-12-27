@@ -411,7 +411,7 @@ cp -a "${RENDER_DIR}/package-lists/." "${LB_DIR}/config/package-lists/"
 
 # Include l-m-x image and scripts
 if [ -d "${LAMASSU_EXTRAS}" ]; then
-    mkdir -p "${LB_DIR}/config/inclues.chroot_after_packages/opt/lamassu/"
+    mkdir -p "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
     echo >&2 "Copying ${LAMASSU_EXTRAS} to chroot..."
     cp -a "${LAMASSU_EXTRAS}"/* -t "${LB_DIR}/config/inclues.chroot_after_packages/opt/lamassu/"
 fi
