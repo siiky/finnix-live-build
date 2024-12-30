@@ -415,7 +415,7 @@ if [ ! -f "${LAMASSU_IMAGE_DIR}/image.img.gz" ]; then # Path to *.img.gz etc
     exit 1
 fi
 mkdir -p "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
-cp -a lamassu-extras/* -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
+cp -a "$(dirname "$0")/lamassu-extras"/* -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
 cp -a "${LAMASSU_IMAGE_DIR}"/image.img.* -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
 
 if [ "${is_dirty}" = "true" ]; then
