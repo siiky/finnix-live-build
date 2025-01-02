@@ -13,7 +13,7 @@ useradd \
     --create-home \
     --comment "{{ PRODUCT }} user" \
     --password '*' \
-    --shell /opt/lamassu/bin/lamassu-main-menu \
+    --shell /bin/bash \
     --groups audio,cdrom,dialout,dip,floppy,video,plugdev,adm,sudo \
     "${PRODUCT_ID}"
 

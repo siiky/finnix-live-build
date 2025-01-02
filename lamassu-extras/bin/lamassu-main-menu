@@ -22,7 +22,7 @@ do_guided() {
 }
 
 do_shell() {
-	/bin/bash
+	/bin/bash --norc --noprofile
 }
 
 do_shutdown() {

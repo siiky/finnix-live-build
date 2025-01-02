@@ -15,14 +15,9 @@ EOM
 
 if ! grep -q "^# {{ PRODUCT }} additions" /etc/skel/.bashrc >/dev/null 2>/dev/null; then
     cat <<"EOM" >>/etc/skel/.bashrc
-
-# {{ PRODUCT }} additions
-if [ -f ~/.bash_{{ PRODUCT_ID }} ]; then
-    . ~/.bash_{{ PRODUCT_ID }}
-fi
+/opt/lamassu/bin/lamassu-main-menu
 EOM
 fi
 
-install -D -m 0644 /hook-files/bash_profile "/etc/skel/.bash_${PRODUCT_ID}"
 rsync -a /etc/skel/ /root/
 chmod 0700 /root
