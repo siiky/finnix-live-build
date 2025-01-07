@@ -428,8 +428,11 @@ handle_tui_return() {
 }
 
 tui_subcmd() {
+	local menumsg='Choose what operation to perform.'
+	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then menumsg="${menumsg}\nl-m-x release number: ${LMX_RELEASE_NUMBER}"; fi
+	if [ "${LMX_MACHINE_VERSION}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${LMX_MACHINE_VERSION}"; fi
 	tui --title 'What do you wish to do?' --clear \
-		--menu 'Choose what operation to perform' 0 0 0 \
+		--menu "${menumsg}" 0 0 0 \
 		'install' 'Install a Lamassu machine (i.e., flash and configure)' \
 		'configure' 'Configure an already-installed Lamassu machine'
 }
@@ -531,6 +534,16 @@ tui_confirmation() {
 		gm_cdu_line="GenMega CDU license: ${GENMEGA_CDU_LICENSE}\n"
 	fi
 
+	local lmx_release_number_line=''
+	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then
+		lmx_release_number_line="l-m-x release number: ${LMX_RELEASE_NUMBER}\n"
+	fi
+
+	local lmx_machine_version_line=''
+	if [ "${LMX_MACHINE_VERSION}" != '' ]; then
+		lmx_machine_version_line="Lamassu machine version: ${LMX_MACHINE_VERSION}\n"
+	fi
+
 	tui --title 'Do you wish to proceed?' --clear \
 		--yes-button "Yes, ${subcmd}" --defaultno \
 		--yesno "\
@@ -540,9 +553,13 @@ WARNING: Data on this drive will be lost! Only proceed if certain.
 
 Image: ${image}
 Device: ${device}
+${lmx_release_number_line}\
+${lmx_machine_version_line}\
+
 Platform: ${platform}
 Model: ${model}
 Printer: ${printer}
+
 ${arca_key_line}\
 ${gm_cdu_line}\
 " 0 0
