@@ -5,8 +5,8 @@ lamassu_bin_dir="$(dirname "$0")"
 IMAGE="${lamassu_bin_dir}/../image.img.gz"
 IMAGE_ENV="${lamassu_bin_dir}/../image.env"
 
-LMX_RELEASE_NUMBER="$(grep '^LMX_RELEASE_NUMBER=' "${IMAGE_ENV}" | cut -d= -f2)"
-LMX_MACHINE_VERSION="$(grep '^LMX_MACHINE_VERSION=' "${IMAGE_ENV}" | cut -d= -f2)"
+LMX_RELEASE_NUMBER="$(grep '^LMX_RELEASE_NUMBER=' "${IMAGE_ENV}" | cut -d= -f2)"; export LMX_RELEASE_NUMBER
+LMX_MACHINE_VERSION="$(grep '^LMX_MACHINE_VERSION=' "${IMAGE_ENV}" | cut -d= -f2)"; export LMX_MACHINE_VERSION
 
 TUI_OK=0
 
@@ -15,11 +15,11 @@ tui() {
 }
 
 tui_main_menu() {
-	local menumsgextra=''
-	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then menumsgextra="${menumsgextra}\nl-m-x release number: ${LMX_RELEASE_NUMBER}"; fi
-	if [ "${LMX_MACHINE_VERSION}" != '' ]; then menumsgextra="${menumsgextra}\nLamassu machine version: ${LMX_MACHINE_VERSION}"; fi
+	local menumsg='What do you wish to do?  If you wish to install the Lamassu software on a machine, but are unsure on how to proceed, choose the "guided installer".'
+	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then menumsg="${menumsg}\nl-m-x release number: ${LMX_RELEASE_NUMBER}"; fi
+	if [ "${LMX_MACHINE_VERSION}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${LMX_MACHINE_VERSION}"; fi
 	tui --title 'Lamassu installer main menu' \
-		--menu 'What do you wish to do?  If you wish to install the Lamassu software on a machine, but are unsure on how to proceed, choose the "guided installer".${menumsgextra}' 0 0 0 \
+		--menu "${menumsg}" 0 0 0 \
 		guided 'Launch the Lamassu guided installer' \
 		shell 'Start a Bash shell' \
 		shutdown 'Shut the machine down' \
