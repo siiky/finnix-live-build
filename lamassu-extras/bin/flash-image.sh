@@ -297,12 +297,14 @@ find_partitions() {
 configure() {
 	prepare
 
+	local should_unmount=''
 	if [ -b "${device}" ]; then
 		# If device is a block device, mount ${device}*2 into ${rootfs}
 		find_partitions
 		local rootfs="/mnt/${rootpartition}"
 		mkdir -p "${rootfs}"
 		mount -t ext4 "${rootpartition}" "${rootfs}"
+		should_unmount=yes
 	elif [ -d "${device}" ]; then
 		# If it's a directory, just use it instead
 		rootfs="${device}"
@@ -312,7 +314,9 @@ configure() {
 	fi
 
 	configure_root "${rootfs}"
-	#[ -b "${device}" ] && umount "${rootfs}"
+	if [ "${should_unmount}" = 'yes' ]; then
+		umount "${rootfs}"
+	fi
 }
 
 flash_image() {
@@ -438,7 +442,17 @@ tui_subcmd() {
 }
 
 tui_device() {
-	local disks; disks="$(lsblk -prn -o NAME -Q 'TYPE=="disk"')"
+	local awkscript='\
+{ disks[$1] = 1; }
+$2 != "" { mounted[$1] = 1 }
+END {
+	for (disk in disks) {
+		if (!mounted[disk]) {
+			printf("%s\n", disk)
+		}
+	}
+}'
+	local disks; disks="$(lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' | sed 's| |\t|; s| |\t|;' | awk -F'	' "${awkscript}")"
 	local entries; entries="$(for disk in ${disks}; do echo "${disk} ${disk}"; done)"
 	# shellcheck disable=SC2086
 	tui --title "To which device do you wish to ${subcmd}?" --clear \
