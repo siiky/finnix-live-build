@@ -474,7 +474,9 @@ END {
 		}
 	}
 }'
-	local disks; disks="$(lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' | sed 's| |\t|; s| |\t|;' | awk -F'	' "${awkscript}")"
+	local disks;
+	disks="$(lsblk -prn -o NAME -Q 'TYPE=="disk"')"
+	disks="$(for disk in ${disks}; do printf '%s %s\n' "${disk}" ''; lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' "${disk}"; done | sed 's| |\t|;' | awk -F'	' "${awkscript}" | grep -vw -e fd0 -e zram0)"
 	local entries; entries="$(for disk in ${disks}; do echo "${disk} ${disk}"; done)"
 	# shellcheck disable=SC2086
 	tui --title "To which device do you wish to ${subcmd}?" --clear \
