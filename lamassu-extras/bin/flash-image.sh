@@ -12,6 +12,8 @@ platform='PLATFORM'
 model='MODEL'
 printer='PRINTER'
 image='IMAGE'
+xubuntu_image='XUBUNTU_IMAGE'
+ubilinux_image='UBILINUX_IMAGE'
 
 usage() {
 	cat >&2 <<EOF
@@ -72,11 +74,12 @@ EOF
 
 usage_guided() {
 	cat >&2 <<EOF
-usage: ${progname} guided ${image}
+usage: ${progname} guided ${xubuntu_image} ${ubilinux_image}
 
 This subcommand presents the user with an interactive menu that they can follow, as an alternative to the other subcommands.
 
-IMAGE is an image (uncompressed, gzipped, or xzipped) file.
+XUBUNTU_IMAGE is a Xubuntu image (uncompressed, gzipped, or xzipped) file.
+UBILINUX_IMAGE is an Ubilinux image (uncompressed, gzipped, or xzipped) file.
 
 EOF
 	exit 1
@@ -150,6 +153,16 @@ parse_image() {
 	parse_image_file "$@" || parse_image_stdin "$@"
 }
 
+parse_xubuntu_image_file() {
+	if [ ! -f "$1" ]; then return 1; fi
+	xubuntu_image="$1"
+}
+
+parse_ubilinux_image_file() {
+	if [ ! -f "$1" ]; then return 1; fi
+	ubilinux_image="$1"
+}
+
 parse_printer() {
 	case "$1" in
 		nippon) printer='Nippon-2511D-2';;
@@ -182,7 +195,8 @@ parse_args_install() {
 
 # IMAGE
 parse_args_guided() {
-	parse_image_file "$1"
+	parse_xubuntu_image_file "$1" \
+		&& parse_ubilinux_image_file "$2"
 }
 
 try_create_envoyrpc_license() {
@@ -413,6 +427,13 @@ install() {
 	echo >&2 'All went well, please reboot now.'
 }
 
+set_image_by_platform_model() {
+	case "${platform}" in
+		upboard) image="${ubilinux_image}";;
+		*) image="${xubuntu_image}";;
+	esac
+}
+
 tui() {
 	"${whiptail}" "$@" 3>&2 2>&1 1>&3 3>&-
 }
@@ -442,6 +463,7 @@ tui_subcmd() {
 }
 
 tui_device() {
+	# shellcheck disable=SC2016
 	local awkscript='\
 { disks[$1] = 1; }
 $2 != "" { mounted[$1] = 1 }
@@ -479,10 +501,16 @@ tui_model_() {
 
 tui_model() {
 	case "${platform}" in
-		up4000|upboard) tui_model_ \
+		up4000) tui_model_ \
 			aveiro 'Aveiro' \
 			gaia 'Gaia' \
 			grandola 'Grândola' \
+			tejo 'Tejo' \
+			sintra 'Sintra' \
+			;;
+
+		upboard) tui_model_ \
+			gaia 'Gaia' \
 			tejo 'Tejo' \
 			sintra 'Sintra' \
 			;;
@@ -653,6 +681,7 @@ guided_install() {
 	guided_input_arca_key
 	guided_input_genmega_cdu_license
 
+	set_image_by_platform_model
 	if guided_confirmation; then
 		if install; then
 			tui_success_msg
