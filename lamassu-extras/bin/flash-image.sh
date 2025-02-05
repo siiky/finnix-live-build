@@ -14,6 +14,8 @@ printer='PRINTER'
 image='IMAGE'
 xubuntu_image='XUBUNTU_IMAGE'
 ubilinux_image='UBILINUX_IMAGE'
+image_release_number=''
+image_machine_version=''
 
 usage() {
 	cat >&2 <<EOF
@@ -429,8 +431,16 @@ install() {
 
 set_image_by_platform_model() {
 	case "${platform}" in
-		upboard) image="${ubilinux_image}";;
-		*) image="${xubuntu_image}";;
+		upboard)
+			image="${ubilinux_image}"
+			image_release_number="${UBILINUX_RELEASE_NUMBER}"
+			image_machine_version="${UBILINUX_MACHINE_VERSION}"
+			;;
+		*)
+			image="${xubuntu_image}"
+			image_release_number="${LMX_RELEASE_NUMBER}"
+			image_machine_version="${LMX_MACHINE_VERSION}"
+			;;
 	esac
 }
 
@@ -454,8 +464,8 @@ handle_tui_return() {
 
 tui_subcmd() {
 	local menumsg='Choose what operation to perform.'
-	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then menumsg="${menumsg}\nl-m-x release number: ${LMX_RELEASE_NUMBER}"; fi
-	if [ "${LMX_MACHINE_VERSION}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${LMX_MACHINE_VERSION}"; fi
+	if [ "${image_release_number}" != '' ]; then menumsg="${menumsg}\nImage release number: ${image_release_number}"; fi
+	if [ "${image_machine_version}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${image_machine_version}"; fi
 	tui --title 'What do you wish to do?' --clear \
 		--menu "${menumsg}" 0 0 0 \
 		'install' 'Install a Lamassu machine (i.e., flash and configure)' \
@@ -578,14 +588,14 @@ tui_confirmation() {
 		gm_cdu_line="GenMega CDU license: ${GENMEGA_CDU_LICENSE}\n"
 	fi
 
-	local lmx_release_number_line=''
-	if [ "${LMX_RELEASE_NUMBER}" != '' ]; then
-		lmx_release_number_line="l-m-x release number: ${LMX_RELEASE_NUMBER}\n"
+	local image_release_number_line=''
+	if [ "${image_release_number}" != '' ]; then
+		image_release_number_line="Image release number: ${image_release_number}\n"
 	fi
 
-	local lmx_machine_version_line=''
-	if [ "${LMX_MACHINE_VERSION}" != '' ]; then
-		lmx_machine_version_line="Lamassu machine version: ${LMX_MACHINE_VERSION}\n"
+	local image_machine_version_line=''
+	if [ "${image_machine_version}" != '' ]; then
+		image_machine_version_line="Lamassu machine version: ${image_machine_version}\n"
 	fi
 
 	tui --title 'Do you wish to proceed?' --clear \
@@ -597,8 +607,8 @@ WARNING: Data on this drive will be lost! Only proceed if certain.
 
 Image: ${image}
 Device: ${device}
-${lmx_release_number_line}\
-${lmx_machine_version_line}\
+${image_release_number_line}\
+${image_machine_version_line}\
 
 Platform: ${platform}
 Model: ${model}
