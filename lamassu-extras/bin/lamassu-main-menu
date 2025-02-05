@@ -1,12 +1,14 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC3043
 
 lamassu_bin_dir="$(dirname "$0")"
 
-IMAGE="${lamassu_bin_dir}/../image.img.gz"
-IMAGE_ENV="${lamassu_bin_dir}/../image.env"
+XUBUNTU_IMAGE="${lamassu_bin_dir}/../xubuntu.img.gz"
+XUBUNTU_IMAGE_ENV="${lamassu_bin_dir}/../xubuntu.env"
+UBILINUX_IMAGE="${lamassu_bin_dir}/../ubilinux.img.gz"
 
-LMX_RELEASE_NUMBER="$(grep '^LMX_RELEASE_NUMBER=' "${IMAGE_ENV}" | cut -d= -f2)"; export LMX_RELEASE_NUMBER
-LMX_MACHINE_VERSION="$(grep '^LMX_MACHINE_VERSION=' "${IMAGE_ENV}" | cut -d= -f2)"; export LMX_MACHINE_VERSION
+LMX_RELEASE_NUMBER="$(grep '^LMX_RELEASE_NUMBER=' "${XUBUNTU_IMAGE_ENV}" | cut -d= -f2)"; export LMX_RELEASE_NUMBER
+LMX_MACHINE_VERSION="$(grep '^LMX_MACHINE_VERSION=' "${XUBUNTU_IMAGE_ENV}" | cut -d= -f2)"; export LMX_MACHINE_VERSION
 
 TUI_OK=0
 
@@ -27,7 +29,7 @@ tui_main_menu() {
 }
 
 do_guided() {
-	"${lamassu_bin_dir}"/flash-image.sh guided "${IMAGE}"
+	"${lamassu_bin_dir}"/flash-image.sh guided "${XUBUNTU_IMAGE}" "${UBILINUX_IMAGE}"
 }
 
 do_shell() {

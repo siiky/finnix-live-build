@@ -409,14 +409,17 @@ cp -a "${RENDER_DIR}/hook-files/." "${LB_DIR}/config/includes.chroot_after_packa
 mkdir -p "${LB_DIR}/config/package-lists"
 cp -a "${RENDER_DIR}/package-lists/." "${LB_DIR}/config/package-lists/"
 
-# Include l-m-x image and scripts
-if [ ! -f "${LAMASSU_IMAGE_DIR}/image.img.gz" ]; then # Path to *.img.gz etc
-    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/image.img.gz' does not exist; cannot proceed."
+# Include images and scripts
+if [ ! -f "${LAMASSU_IMAGE_DIR}/xubuntu.img.gz" ]; then # Path to *.img.gz etc
+    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/xubuntu.img.gz' does not exist; cannot proceed."
+    exit 1
+fi
+if [ ! -f "${LAMASSU_IMAGE_DIR}/ubilinux.img.gz" ]; then # Path to *.img.gz etc
+    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/ubilinux.img.gz' does not exist; cannot proceed."
     exit 1
 fi
 mkdir -p "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
-cp -a "${LAMASSU_EXTRAS}"/* -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
-cp -a "${LAMASSU_IMAGE_DIR}"/image.img.* "${LAMASSU_IMAGE_DIR}"/image.env -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
+cp -a "${LAMASSU_EXTRAS}"/* "${LAMASSU_IMAGE_DIR}"/xubuntu.img.* "${LAMASSU_IMAGE_DIR}"/ubilinux.img.* "${LAMASSU_IMAGE_DIR}"/xubuntu.env "${LAMASSU_IMAGE_DIR}"/ubilinux.env -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
 
 if [ "${is_dirty}" = "true" ]; then
     mkdir -p "${LB_DIR}/config/includes.binary/.disk"
