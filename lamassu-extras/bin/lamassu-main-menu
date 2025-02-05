@@ -5,10 +5,13 @@ lamassu_bin_dir="$(dirname "$0")"
 
 XUBUNTU_IMAGE="${lamassu_bin_dir}/../xubuntu.img.gz"
 XUBUNTU_IMAGE_ENV="${lamassu_bin_dir}/../xubuntu.env"
-UBILINUX_IMAGE="${lamassu_bin_dir}/../ubilinux.img.gz"
+LMX_RELEASE_NUMBER="$(grep '^RELEASE_NUMBER=' "${XUBUNTU_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_RELEASE_NUMBER
+LMX_MACHINE_VERSION="$(grep '^MACHINE_VERSION=' "${XUBUNTU_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_MACHINE_VERSION
 
-LMX_RELEASE_NUMBER="$(grep '^LMX_RELEASE_NUMBER=' "${XUBUNTU_IMAGE_ENV}" | cut -d= -f2)"; export LMX_RELEASE_NUMBER
-LMX_MACHINE_VERSION="$(grep '^LMX_MACHINE_VERSION=' "${XUBUNTU_IMAGE_ENV}" | cut -d= -f2)"; export LMX_MACHINE_VERSION
+UBILINUX_IMAGE="${lamassu_bin_dir}/../ubilinux.img.gz"
+UBILINUX_IMAGE_ENV="${lamassu_bin_dir}/../ubilinux.env"
+UBILINUX_RELEASE_NUMBER="$(grep '^RELEASE_NUMBER=' "${UBILINUX_IMAGE_ENV}" | cut -d= --complement -f1)"; export UBILINUX_RELEASE_NUMBER
+UBILINUX_MACHINE_VERSION="$(grep '^MACHINE_VERSION=' "${UBILINUX_IMAGE_ENV}" | cut -d= --complement -f1)"; export UBILINUX_MACHINE_VERSION
 
 TUI_OK=0
 

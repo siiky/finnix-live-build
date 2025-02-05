@@ -419,7 +419,7 @@ if [ ! -f "${LAMASSU_IMAGE_DIR}/ubilinux.img.gz" ]; then # Path to *.img.gz etc
     exit 1
 fi
 mkdir -p "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
-cp -a "${LAMASSU_EXTRAS}"/* "${LAMASSU_IMAGE_DIR}"/xubuntu.img.* "${LAMASSU_IMAGE_DIR}"/ubilinux.img.* "${LAMASSU_IMAGE_DIR}"/xubuntu.env -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
+cp -a "${LAMASSU_EXTRAS}"/* "${LAMASSU_IMAGE_DIR}"/xubuntu.img.* "${LAMASSU_IMAGE_DIR}"/ubilinux.img.* "${LAMASSU_IMAGE_DIR}"/xubuntu.env "${LAMASSU_IMAGE_DIR}"/ubilinux.env -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
 
 if [ "${is_dirty}" = "true" ]; then
     mkdir -p "${LB_DIR}/config/includes.binary/.disk"
