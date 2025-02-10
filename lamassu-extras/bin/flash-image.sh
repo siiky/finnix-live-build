@@ -269,6 +269,7 @@ configure_root() {
 	# copy model-specific supervisor configs
 	rm -rf "${rootfs}/etc/supervisor/conf.d/"
 	cp -r "${lmroot}/hardware/system/${platform}/${model}/supervisor/conf.d/" -t "${rootfs}/etc/supervisor/"
+	sed -i "s|^user=.*$|user=${osuser}|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
 
 	# copy model-specific udev rules
 	rm -f "${rootfs}"/etc/udev/rules.d/99-*.rules
@@ -435,11 +436,13 @@ set_image_by_platform_model() {
 			image="${ubilinux_image}"
 			image_release_number="${UBILINUX_RELEASE_NUMBER}"
 			image_machine_version="${UBILINUX_MACHINE_VERSION}"
+			osuser='ubilinux'
 			;;
 		*)
 			image="${xubuntu_image}"
 			image_release_number="${LMX_RELEASE_NUMBER}"
 			image_machine_version="${LMX_MACHINE_VERSION}"
+			osuser='lamassu'
 			;;
 	esac
 }
