@@ -289,6 +289,10 @@ configure_root() {
 	fi
 	chmod 0755 "${rootfs}/opt/calibrate-screen.sh"
 
+	# install camera-streamer and verify programs
+	cp "${lmroot}/camera-streamer/camera-streamer.amd64" "${lmroot}/camera-streamer/camera-streamer"
+	cp "${lmroot}/verify/verify.amd64" "${lmroot}/verify/verify"
+
 	set +x
 
 	echo >&2 'Finished configuring the machine.'
