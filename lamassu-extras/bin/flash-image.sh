@@ -226,11 +226,23 @@ EOF
 	local interface=enp2s0
 	local hostid; hostid="$(sed 's|:||g;' "/sys/class/net/${interface}/address")"
 
-	curl 'http://license.arca.com/cgi-bin/arca_mklic' \
-	 -X POST \
-	 -H 'Content-Type: application/x-www-form-urlencoded' \
-	 -H 'Origin: http://license.arca.com' \
-	 --data-raw "akey=${ARCA_KEY}&hostid=${hostid}" \
+	local curl_reply=''
+	if ! curl_reply="$(curl 'http://license.arca.com/cgi-bin/arca_mklic' -X POST -H 'Content-Type: application/x-www-form-urlencoded' -H 'Origin: http://license.arca.com' --data-raw "akey=${ARCA_KEY}&hostid=${hostid}")"; then
+		echo >&2 'Failed to contact ARCA server to create a license...'
+		return 1
+	fi
+
+	if echo "${curl_reply}" | grep -qiw error; then
+		echo >&2 'ARCA server reply is likely an error...'
+		return 1
+	fi
+
+	if ! echo "${curl_reply}" | grep -qw LICENSE; then
+		echo >&2 'ARCA server reply likely does not contain the license!'
+		return 1
+	fi
+
+	echo "${curl_reply}" \
 	 | sed '1s/.*<pre>//; /^<\/pre>/d' \
 	 | tee "${rootfs}/EnvoyRPC/htdocs/ac/license/envoyrpc.lic" >&2
 }
