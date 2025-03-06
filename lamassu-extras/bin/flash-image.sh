@@ -262,6 +262,13 @@ EOF
 	sed -i '/^    "license"/s/"",$/"'"${GENMEGA_CDU_LICENSE}"'",/;' "${lmroot}/device_config.json"
 }
 
+get_osuser() {
+	case "${platform}" in
+		upboard) echo 'ubilinux';;
+		*) echo 'lamassu';;
+	esac
+}
+
 configure_root() {
 	local rootfs="$1"
 
@@ -281,7 +288,7 @@ configure_root() {
 	# copy model-specific supervisor configs
 	rm -rf "${rootfs}/etc/supervisor/conf.d/"
 	cp -r "${lmroot}/hardware/system/${platform}/${model}/supervisor/conf.d/" -t "${rootfs}/etc/supervisor/"
-	sed -i "s|^user=.*$|user=${osuser}|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
+	sed -i "s|^user=.*$|user=${get_osuser}|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
 
 	# copy model-specific udev rules
 	rm -f "${rootfs}"/etc/udev/rules.d/99-*.rules
@@ -302,8 +309,8 @@ configure_root() {
 	chmod 0755 "${rootfs}/opt/calibrate-screen.sh"
 
 	# install camera-streamer and verify programs
-	cp "${lmroot}/camera-streamer/camera-streamer.amd64" "${lmroot}/camera-streamer/camera-streamer"
-	cp "${lmroot}/verify/verify.amd64" "${lmroot}/verify/verify"
+	[ -L "${lmroot}/camera-streamer/camera-streamer" ] || cp -f "${lmroot}/camera-streamer/camera-streamer.amd64" "${lmroot}/camera-streamer/camera-streamer"
+	[ -L "${lmroot}/verify/verify" ] || cp -f "${lmroot}/verify/verify.amd64" "${lmroot}/verify/verify"
 
 	set +x
 
@@ -353,26 +360,16 @@ configure() {
 }
 
 flash_image() {
-	# Start by assuming stdin
-	ddif=''
-	decompresscmd=''
-
-	if [ "${image}" != '-' ]; then
-		case "$(file --brief --mime-type "${image}")" in
-			application/gzip) decompresscmd="zcat ${image}";;
-			application/x-xz) decompresscmd="xzcat ${image}";;
-			*) ddif="if=${image}";;
-		esac
-	fi
-
-	if [ "${ddif}" = '' ]; then
+	if [ "${image}" = '-' ]; then
 		set -x
-		# shellcheck disable=SC2086
-		${decompresscmd} | dd of="${device}" bs=4M ${ddextra}
+		dd of="${device}" bs=4M ${ddextra}
 	else
 		set -x
-		# shellcheck disable=SC2086
-		dd ${ddif} of="${device}" bs=4M ${ddextra}
+		case "$(file --brief --mime-type "${image}")" in
+			application/gzip) zcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
+			application/x-xz) xzcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
+			*) dd if="${image}" of="${device}" bs=4M ${ddextra};;
+		esac
 	fi
 }
 
@@ -452,13 +449,11 @@ set_image_by_platform_model() {
 			image="${ubilinux_image}"
 			image_release_number="${UBILINUX_RELEASE_NUMBER}"
 			image_machine_version="${UBILINUX_MACHINE_VERSION}"
-			osuser='ubilinux'
 			;;
 		*)
 			image="${xubuntu_image}"
 			image_release_number="${LMX_RELEASE_NUMBER}"
 			image_machine_version="${LMX_MACHINE_VERSION}"
-			osuser='lamassu'
 			;;
 	esac
 }
@@ -503,9 +498,15 @@ END {
 		}
 	}
 }'
+
 	local disks;
 	disks="$(lsblk -prn -o NAME -Q 'TYPE=="disk"')"
 	disks="$(for disk in ${disks}; do printf '%s %s\n' "${disk}" ''; lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' "${disk}"; done | sed 's| |\t|;' | awk -F'	' "${awkscript}" | grep -vw -e fd0 -e zram0)"
+	if [ -z "${disks}" ]; then
+		tui_msgbox 'No disks found!' 'No disks available for install were found. If you are installing a non-Lamassu machine, make sure the internal drive(s) to which you want to install are well connected. If you need help, please contact the Lamassu support.'
+		return 1
+	fi
+
 	local entries; entries="$(for disk in ${disks}; do echo "${disk} ${disk}"; done)"
 	# shellcheck disable=SC2086
 	tui --title "To which device do you wish to ${subcmd}?" --clear \
@@ -638,14 +639,20 @@ ${gm_cdu_line}\
 " 0 0
 }
 
+tui_msgbox() {
+	local title="$1"
+	local text="$2"
+	tui --title "${title}" --clear --msgbox "${text}" 0 0
+}
+
 tui_failure_msg() {
-	tui --title 'Something went wrong...' --clear \
-		--msgbox 'Something went wrong, DO NOT REBOOT!\nIf possible go over the process again, or contact support.' 0 0
+	tui_msgbox 'Something went wrong...' \
+		'Something went wrong, DO NOT REBOOT!\nIf possible go over the process again, or contact support.'
 }
 
 tui_success_msg() {
-	tui --title 'All good!' --clear \
-		--msgbox 'All went well, please reboot now.' 0 0
+	tui_msgbox 'All good!' \
+		'All went well, please reboot now.'
 }
 
 guided_pick_device() {
