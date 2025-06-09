@@ -11,6 +11,8 @@ device='DEVICE'
 platform='PLATFORM'
 model='MODEL'
 printer='PRINTER'
+number_of_cassettes='NUMBER_OF_CASSETTES'
+number_of_recyclers='NUMBER_OF_RECYCLERS'
 image='IMAGE'
 xubuntu_image='XUBUNTU_IMAGE'
 ubilinux_image='UBILINUX_IMAGE'
@@ -33,18 +35,20 @@ EOF
 
 usage_configure() {
 	cat >&2 <<EOF
-usage: ${progname} configure ${device} ${platform} ${model} [${printer}]
+usage: ${progname} configure ${device} ${platform} ${model} [--printer ${printer}]
 
 ROOT may be either the (unmounted) DEVICE, or the mount DIRECTORY of the root partition. If this is an UP or UP4000, DEVICE is likely /dev/mmcblk0.
 PLATFORM is the model of the board (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, coincloud, generalbytes, genmega.
 MODEL is the model of the machine: aveiro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
 PRINTER (optional; defaults to none) is the model of the printer: nippon, zebra, genmega, none.
+NUMBER_OF_CASSETTES (optional; only for aveiro, tejo) is the number of installed cassettes.
+NUMBER_OF_RECYCLERS (optional; only for aveiro, grandola) is the number of installed recyclers.
 
 WARNING: Be sure to specify the correct DEVICE!
 
 EXAMPLES:
 To configure an already-installed machine:
-	${progname} configure /dev/mmcblk0 upboard tejo nippon
+	${progname} configure /dev/mmcblk0 upboard tejo --printer nippon
 
 EOF
 	exit 1
@@ -52,7 +56,7 @@ EOF
 
 usage_install() {
 	cat >&2 <<EOF
-usage: ${progname} install ${device} ${image} ${platform} ${model} [${printer}]
+usage: ${progname} install ${device} ${image} ${platform} ${model} [--printer ${printer}]
 
 If this is an UP board, DEVICE is likely /dev/mmcblk0.
 IMAGE is an image (uncompressed, gzipped, or xzipped) or - to read from stdin.
@@ -60,15 +64,17 @@ IMAGE is an image (uncompressed, gzipped, or xzipped) or - to read from stdin.
 PLATFORM is the model of the board (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, coincloud, generalbytes, genmega.
 MODEL is the model of the machine: aveiro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
 PRINTER (optional; defaults to none) is the model of the printer: nippon, zebra, genmega, none.
+NUMBER_OF_CASSETTES (optional; only for aveiro, tejo) is the number of installed cassettes.
+NUMBER_OF_RECYCLERS (optional; only for aveiro, grandola) is the number of installed recyclers.
 
 WARNING: Be sure to specify the correct DEVICE, it will be overwritten!
 
 EXAMPLES:
 To install an uncompressed image file:
-	${progname} install /dev/mmcblk0 image.img up4000 tejo nippon
+	${progname} install /dev/mmcblk0 image.img up4000 tejo --printer nippon
 
 To install a gzipped image file:
-	${progname} install /dev/mmcblk0 image.img.gz up4000 tejo nippon
+	${progname} install /dev/mmcblk0 image.img.gz up4000 tejo --printer nippon
 
 EOF
 	exit 1
@@ -89,7 +95,7 @@ EOF
 
 parse_device() {
 	arg="$1"
-	[ -b "${arg}" ] || return 1
+	#[ -b "${arg}" ] || return 1
 	device="${arg}"
 }
 
@@ -176,23 +182,50 @@ parse_printer() {
 	esac
 }
 
-# ROOT PLATFORM MODEL [PRINTER]
-parse_args_configure() {
-	device='ROOT'
-	parse_device_or_directory "$1" \
-		&& parse_platform "$2" \
-		&& parse_model "$3" \
-		&& parse_printer "$4"
+check_number() {
+	echo "$1" | grep -qw '[0-9]\+'
 }
 
-# DEVICE IMAGE PLATFORM MODEL [PRINTER]
+parse_number_of_cassettes() {
+	check_number "$1" && number_of_cassettes="$1"
+}
+
+parse_number_of_recyclers() {
+	check_number "$1" && number_of_recyclers="$1"
+}
+
+parse_rest() {
+	while [ "$#" -ge 2 ]; do
+		case "$1" in
+			--printer) parse_printer "$2";;
+			--number_of_cassettes) parse_number_of_cassettes "$2";;
+			--number_of_recyclers) parse_number_of_recyclers "$2";;
+		esac || return 1
+		shift 2
+	done
+
+	if [ "$#" -gt 0 ]; then
+		return 1
+	fi
+}
+
+# ROOT PLATFORM MODEL [REST...]
+parse_args_configure() {
+	device='ROOT'
+	parse_device_or_directory "$1" && shift \
+		&& parse_platform "$1" && shift \
+		&& parse_model "$1" && shift \
+		&& parse_rest "$@"
+}
+
+# DEVICE IMAGE PLATFORM MODEL [REST...]
 parse_args_install() {
 	device='DEVICE'
-	parse_device "$1" \
-		&& parse_image "$2" \
-		&& parse_platform "$3" \
-		&& parse_model "$4" \
-		&& parse_printer "$5"
+	parse_device "$1" && shift \
+		&& parse_image "$1" && shift \
+		&& parse_platform "$1" && shift \
+		&& parse_model "$1" && shift \
+		&& parse_rest "$@"
 }
 
 # IMAGE
@@ -248,6 +281,10 @@ EOF
 }
 
 try_set_genmega_cdu_license() {
+	if [ ! "${platform}" = 'genmega' ]; then
+		return 0
+	fi
+
 	if [ "${GENMEGA_CDU_LICENSE}" = '' ]; then
 		cat >&2 <<EOF
 WARNING: Environment variable GENMEGA_CDU_LICENSE not set, WILL NOT update
@@ -258,8 +295,36 @@ EOF
 		return 0
 	fi
 
-	local lmroot="$1"
-	sed -i '/^    "license"/s/"",$/"'"${GENMEGA_CDU_LICENSE}"'",/;' "${lmroot}/device_config.json"
+	local device_config="$1"
+	json_setpath_inplace '["billDispenser", "license"]' '"'"${GENMEGA_CDU_LICENSE}"'"' "${device_config}"
+}
+
+try_set_number_of_cassettes() {
+	case "${model}" in
+		aveiro|tejo);;
+		*) return 0;;
+	esac
+
+	if ! check_number "${number_of_cassettes}"; then
+		return 0
+	fi
+
+	local device_config="$1"
+	json_setpath_inplace '["billDispenser", "cassettes"]' "${number_of_cassettes}" "${device_config}"
+}
+
+try_set_number_of_recyclers() {
+	case "${model}" in
+		aveiro|grandola);;
+		*) return 0;;
+	esac
+
+	if ! check_number "${number_of_recyclers}"; then
+		return 0
+	fi
+
+	local device_config="$1"
+	json_setpath_inplace '["billDispenser", "recyclers"]' "${number_of_recyclers}" "${device_config}"
 }
 
 get_osuser() {
@@ -269,21 +334,30 @@ get_osuser() {
 	esac
 }
 
+json_setpath_inplace() {
+	local path="$1"
+	local value="$2"
+	local file="$3"
+	jq "setpath(${path}; ${value})" "${file}" | sponge "${file}"
+}
+
 configure_root() {
 	local rootfs="$1"
 
 	set -x
 	# copy machine-specific configs
 	local lmroot="${rootfs}/opt/lamassu-machine"
-	cp "${lmroot}/hardware/codebase/${platform}/${model}/device_config.json" "${lmroot}/"
+	local device_config="${lmroot}/device_config.json"
+	cp "${lmroot}/hardware/codebase/${platform}/${model}/device_config.json" "${device_config}"
 
 	# set the correct printer
-	sed -i 's/Nippon-2511D-2/'"${printer}"'/g' "${lmroot}/device_config.json"
+	json_setpath_inplace '["kioskPrinter", "model"]' '"'"${printer}"'"' "${device_config}"
+
+	try_set_number_of_cassettes "${device_config}"
+	try_set_number_of_recyclers "${device_config}"
 
 	# set the GenMega CDU license
-	if [ "${platform}" = 'genmega' ]; then
-		try_set_genmega_cdu_license "${lmroot}"
-	fi
+	try_set_genmega_cdu_license "${device_config}"
 
 	# copy model-specific supervisor configs
 	rm -rf "${rootfs}/etc/supervisor/conf.d/"
@@ -335,6 +409,10 @@ find_partitions() {
 }
 
 configure() {
+	echo "printer=${printer}"
+	echo "number_of_cassettes=${number_of_cassettes}"
+	echo "number_of_recyclers=${number_of_recyclers}"
+
 	prepare
 
 	local should_unmount=''
@@ -584,6 +662,16 @@ tui_printer() {
 		${entries}
 }
 
+tui_number_of_cassettes() {
+	tui --title 'Number of cassettes' \
+		--inputbox 'Please input the number of cassettes.' 0 0
+}
+
+tui_number_of_recyclers() {
+	tui --title 'Number of recyclers' \
+		--inputbox 'Please input the number of recyclers.' 0 0
+}
+
 tui_input_arca_key() {
 	tui --title 'ARCA key' --clear \
 		--inputbox 'Please type in your ARCA key.' 0 0
@@ -674,6 +762,30 @@ guided_pick_printer() {
 	handle_tui_return $?
 }
 
+guided_pick_number_of_cassettes() {
+	case "${model}" in
+		aveiro|tejo);;
+		*) return 0;;
+	esac
+
+	until check_number "${number_of_cassettes}"; do
+		number_of_cassettes="$(tui_number_of_cassettes)"
+		handle_tui_return $?
+	done
+}
+
+guided_pick_number_of_recyclers() {
+	case "${model}" in
+		aveiro|grandola);;
+		*) return 0;;
+	esac
+
+	until check_number "${number_of_recyclers}"; do
+		number_of_recyclers="$(tui_number_of_recyclers)"
+		handle_tui_return $?
+	done
+}
+
 guided_input_arca_key() {
 	if [ "${model}" = 'grandola' ]; then
 		ARCA_KEY="$(tui_input_arca_key)"
@@ -698,6 +810,8 @@ guided_configure() {
 	guided_pick_platform
 	guided_pick_model
 	guided_pick_printer
+	guided_pick_number_of_cassettes
+	guided_pick_number_of_recyclers
 	guided_input_arca_key
 	guided_input_genmega_cdu_license
 
@@ -715,6 +829,8 @@ guided_install() {
 	guided_pick_platform
 	guided_pick_model
 	guided_pick_printer
+	guided_pick_number_of_cassettes
+	guided_pick_number_of_recyclers
 	guided_input_arca_key
 	guided_input_genmega_cdu_license
 
