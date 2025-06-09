@@ -296,7 +296,7 @@ EOF
 	fi
 
 	local device_config="$1"
-	json_setpath_inplace '["billDispenser", "license"]' '"'"${GENMEGA_CDU_LICENSE}"'"' "${device_config}"
+	json_setpath_inplace '"billDispenser", "license"' '"'"${GENMEGA_CDU_LICENSE}"'"' "${device_config}"
 }
 
 try_set_number_of_cassettes() {
@@ -310,7 +310,7 @@ try_set_number_of_cassettes() {
 	fi
 
 	local device_config="$1"
-	json_setpath_inplace '["billDispenser", "cassettes"]' "${number_of_cassettes}" "${device_config}"
+	json_setpath_inplace '"billDispenser", "cassettes"' "${number_of_cassettes}" "${device_config}"
 }
 
 try_set_number_of_recyclers() {
@@ -324,7 +324,7 @@ try_set_number_of_recyclers() {
 	fi
 
 	local device_config="$1"
-	json_setpath_inplace '["billDispenser", "recyclers"]' "${number_of_recyclers}" "${device_config}"
+	json_setpath_inplace '"billDispenser", "recyclers"' "${number_of_recyclers}" "${device_config}"
 }
 
 get_osuser() {
@@ -338,7 +338,7 @@ json_setpath_inplace() {
 	local path="$1"
 	local value="$2"
 	local file="$3"
-	jq "setpath(${path}; ${value})" "${file}" | sponge "${file}"
+	jq "setpath([${path}]; ${value})" "${file}" | sponge "${file}"
 }
 
 configure_root() {
@@ -351,7 +351,7 @@ configure_root() {
 	cp "${lmroot}/hardware/codebase/${platform}/${model}/device_config.json" "${device_config}"
 
 	# set the correct printer
-	json_setpath_inplace '["kioskPrinter", "model"]' '"'"${printer}"'"' "${device_config}"
+	json_setpath_inplace '"kioskPrinter", "model"' '"'"${printer}"'"' "${device_config}"
 
 	try_set_number_of_cassettes "${device_config}"
 	try_set_number_of_recyclers "${device_config}"
@@ -653,12 +653,12 @@ tui_printer() {
 	if [ "${platform}" = 'genmega' ]; then
 		entries='genmega genmega'
 	else
-		entries='nippon Nippon-2511D-2 zebra Zebra-KR-403'
+		entries='Nippon-2511D-2 Nippon-2511D-2 Zebra-KR-403 Zebra-KR-403'
 	fi
 	# shellcheck disable=SC2086
 	tui --title 'Choose a printer model' --clear \
 		--menu 'Select the model of printer your machine features, if any.' 0 0 0 \
-		none 'None' \
+		None None \
 		${entries}
 }
 
@@ -685,14 +685,9 @@ If your machine is one-way, you may leave it empty.' 0 0
 }
 
 tui_confirmation() {
-	local arca_key_line=''
-	if [ "${ARCA_KEY}" != '' ]; then
-		arca_key_line="ARCA key: ${ARCA_KEY}\n"
-	fi
-
-	local gm_cdu_line=''
-	if [ "${GENMEGA_CDU_LICENSE}" != '' ]; then
-		gm_cdu_line="GenMega CDU license: ${GENMEGA_CDU_LICENSE}\n"
+	local image_file_line=''
+	if [ "${image}" != 'IMAGE' ]; then
+		image_file_line="Image: ${image}\n"
 	fi
 
 	local image_release_number_line=''
@@ -705,6 +700,26 @@ tui_confirmation() {
 		image_machine_version_line="Lamassu machine version: ${image_machine_version}\n"
 	fi
 
+	local number_of_cassettes_line=''
+	if check_number "${number_of_cassettes}"; then
+		number_of_cassettes_line="Number of cassettes: ${number_of_cassettes}\n"
+	fi
+
+	local number_of_recyclers_line=''
+	if check_number "${number_of_recyclers}"; then
+		number_of_recyclers_line="Number of recyclers: ${number_of_recyclers}\n"
+	fi
+
+	local arca_key_line=''
+	if [ "${ARCA_KEY}" != '' ]; then
+		arca_key_line="ARCA key: ${ARCA_KEY}\n"
+	fi
+
+	local gm_cdu_line=''
+	if [ "${GENMEGA_CDU_LICENSE}" != '' ]; then
+		gm_cdu_line="GenMega CDU license: ${GENMEGA_CDU_LICENSE}\n"
+	fi
+
 	tui --title 'Do you wish to proceed?' --clear \
 		--yes-button "Yes, ${subcmd}" --defaultno \
 		--yesno "\
@@ -712,7 +727,7 @@ Do you wish to proceed and ${subcmd} as described below?
 
 WARNING: Data on this drive will be lost! Only proceed if certain.
 
-Image: ${image}
+${image_file_line}\
 Device: ${device}
 ${image_release_number_line}\
 ${image_machine_version_line}\
@@ -720,6 +735,8 @@ ${image_machine_version_line}\
 Platform: ${platform}
 Model: ${model}
 Printer: ${printer}
+${number_of_cassettes_line}\
+${number_of_recyclers_line}\
 
 ${arca_key_line}\
 ${gm_cdu_line}\
