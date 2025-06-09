@@ -288,7 +288,7 @@ configure_root() {
 	# copy model-specific supervisor configs
 	rm -rf "${rootfs}/etc/supervisor/conf.d/"
 	cp -r "${lmroot}/hardware/system/${platform}/${model}/supervisor/conf.d/" -t "${rootfs}/etc/supervisor/"
-	sed -i "s|^user=.*$|user=${get_osuser}|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
+	sed -i "s|^user=.*$|user=$(get_osuser)|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
 
 	# copy model-specific udev rules
 	rm -f "${rootfs}"/etc/udev/rules.d/99-*.rules
@@ -499,15 +499,14 @@ END {
 	}
 }'
 
-	local disks;
-	disks="$(lsblk -prn -o NAME -Q 'TYPE=="disk"')"
-	disks="$(for disk in ${disks}; do printf '%s %s\n' "${disk}" ''; lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' "${disk}"; done | sed 's| |\t|;' | awk -F'	' "${awkscript}" | grep -vw -e fd0 -e zram0)"
-	if [ -z "${disks}" ]; then
+	local disks; disks="$(lsblk -prn -o NAME -Q 'TYPE=="disk"' | grep -vw -e 'fd[0-9]\+' -e 'zram[0-9]\+')"
+	local unmounted_disks; unmounted_disks="$(for disk in ${disks}; do printf '%s %s\n' "${disk}" ''; lsblk -prn -o PKNAME,MOUNTPOINT -Q 'TYPE=="part"' "${disk}"; done | sed 's| |\t|;' | awk -F'	' "${awkscript}")"
+	if [ -z "${unmounted_disks}" ]; then
 		tui_msgbox 'No disks found!' 'No disks available for install were found. If you are installing a non-Lamassu machine, make sure the internal drive(s) to which you want to install are well connected. If you need help, please contact the Lamassu support.'
 		return 1
 	fi
 
-	local entries; entries="$(for disk in ${disks}; do echo "${disk} ${disk}"; done)"
+	local entries; entries="$(for disk in ${unmounted_disks}; do echo "${disk} ${disk}"; done)"
 	# shellcheck disable=SC2086
 	tui --title "To which device do you wish to ${subcmd}?" --clear \
 		--notags \
