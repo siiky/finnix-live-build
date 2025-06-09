@@ -13,3 +13,4 @@ live-tools
 python3-pyudev
 # Required by the Lamassu flash script to modify JSON files after installation.
 jq
+moreutils
