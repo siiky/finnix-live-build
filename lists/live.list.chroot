@@ -11,3 +11,5 @@ live-tools
 # Required by interfaces-convert, used to convert live-boot
 # e-n-i to systemd-networkd configs.
 python3-pyudev
+# Required by the Lamassu flash script to modify JSON files after installation.
+jq
