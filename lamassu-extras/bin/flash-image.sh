@@ -95,7 +95,7 @@ EOF
 
 parse_device() {
 	arg="$1"
-	#[ -b "${arg}" ] || return 1
+	[ -b "${arg}" ] || return 1
 	device="${arg}"
 }
 
@@ -409,10 +409,6 @@ find_partitions() {
 }
 
 configure() {
-	echo "printer=${printer}"
-	echo "number_of_cassettes=${number_of_cassettes}"
-	echo "number_of_recyclers=${number_of_recyclers}"
-
 	prepare
 
 	local should_unmount=''
