@@ -38,8 +38,8 @@ usage_configure() {
 usage: ${progname} configure ${device} ${platform} ${model} [--printer ${printer}]
 
 ROOT may be either the (unmounted) DEVICE, or the mount DIRECTORY of the root partition. If this is an UP or UP4000, DEVICE is likely /dev/mmcblk0.
-PLATFORM is the model of the board (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, coincloud, generalbytes, genmega.
-MODEL is the model of the machine: aveiro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
+PLATFORM is the model of the board or tablet (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, acp, coincloud, generalbytes, genmega.
+MODEL is the model of the machine: aveiro, douro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
 PRINTER (optional; defaults to none) is the model of the printer: nippon, zebra, genmega, none.
 NUMBER_OF_CASSETTES (optional; only for aveiro, tejo) is the number of installed cassettes.
 NUMBER_OF_RECYCLERS (optional; only for aveiro, grandola) is the number of installed recyclers.
@@ -61,8 +61,8 @@ usage: ${progname} install ${device} ${image} ${platform} ${model} [--printer ${
 If this is an UP board, DEVICE is likely /dev/mmcblk0.
 IMAGE is an image (uncompressed, gzipped, or xzipped) or - to read from stdin.
 
-PLATFORM is the model of the board (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, coincloud, generalbytes, genmega.
-MODEL is the model of the machine: aveiro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
+PLATFORM is the model of the board or tablet (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, acp, coincloud, generalbytes, genmega.
+MODEL is the model of the machine: aveiro, douro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
 PRINTER (optional; defaults to none) is the model of the printer: nippon, zebra, genmega, none.
 NUMBER_OF_CASSETTES (optional; only for aveiro, tejo) is the number of installed cassettes.
 NUMBER_OF_RECYCLERS (optional; only for aveiro, grandola) is the number of installed recyclers.
@@ -112,7 +112,7 @@ parse_device_or_directory() {
 parse_platform() {
 	arg="$1"
 	case "${arg}" in
-		up4000|upboard);; # Board name, for Lamassu machines
+		up4000|upboard|acp);; # Board/Tablet name, for Lamassu machines
 		coincloud|genmega|generalbytes);; # Maker name, for non-Lamassu machines
 		*) return 1;;
 	esac
@@ -122,9 +122,9 @@ parse_platform() {
 parse_model() {
 	arg="$1"
 	case "${platform}" in
-		up4000|upboard)
+		up4000|upboard|acp)
 			case "${arg}" in
-				aveiro|gaia|grandola|tejo|sintra);;
+				aveiro|douro|gaia|grandola|tejo|sintra);;
 				*) return 1;;
 			esac;;
 		coincloud)
@@ -593,6 +593,7 @@ tui_platform() {
 		--menu 'Choose the platform/maker of your machine' 0 0 0 \
 		up4000 'Lamassu machine with Aaeon UP4000 board' \
 		upboard 'Lamassu machine with Aaeon UP board' \
+		acp 'Lamassu machine with Aaeon ACP tablet' \
 		coincloud 'CoinCloud machine' \
 		generalbytes 'General Bytes machine' \
 		genmega 'GenMega machine'
@@ -618,6 +619,10 @@ tui_model() {
 			gaia 'Gaia' \
 			tejo 'Tejo' \
 			sintra 'Sintra' \
+			;;
+
+		acp) tui_model_ \
+			douro 'Douro' \
 			;;
 
 		coincloud) tui_model_ \

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 imggz="$1"
 imggzsha512="$2"
@@ -9,4 +10,4 @@ sha512sum_pipe() {
 	tee >(sha512sum -c "${shasum}" >&2)
 }
 
-sha512sum_pipe "${imggzsha512}" < "${imggz}" | gunzip -9 | sha512sum_pipe "${imgsha512}"
+sha512sum_pipe "${imggzsha512}" < "${imggz}" | gunzip -c | sha512sum_pipe "${imgsha512}"
