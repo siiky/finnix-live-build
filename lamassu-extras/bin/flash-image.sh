@@ -228,10 +228,10 @@ parse_args_install() {
 		&& parse_rest "$@"
 }
 
-# IMAGE
+# XUBUNTU UBILINUX
 parse_args_guided() {
-	parse_xubuntu_image_file "$1" \
-		&& parse_ubilinux_image_file "$2"
+	parse_xubuntu_image_file "$1" || return 1
+	parse_ubilinux_image_file "$2" || true
 }
 
 try_create_envoyrpc_license() {
@@ -447,6 +447,32 @@ flash_image() {
 	fi
 }
 
+gpt_verify_disk() {
+	sgdisk -v "$1"
+}
+
+gpt_fix_partitions() {
+	# move GPT partition to end
+	sgdisk -e "${device}"
+
+	# resize partition to use all space available in disk
+	#  -d 2  deletes the partition 2
+	#  -n 2:0:0  recreates partition 2, using the default start/end values -- start is the same as the old partition; end is the maximum available
+	sgdisk -d 2 -n 2:0:0 "${device}"
+}
+
+mbr_verify_disk() {
+	sfdisk -V "$1"
+}
+
+mbr_fix_partitions() {
+	# delete the root partition...
+	sfdisk --delete "$1" 2
+
+	# ... and recreate it using all the available space
+	echo ',,' | sfdisk --append "$1"
+}
+
 flash() {
 	cat >&2 <<EOF
 
@@ -456,21 +482,17 @@ At the end of this process a message will inform you that it has successfully fi
 If the script exits and you do not see that message, please contact our support.
 EOF
 
+	# The partition type of the installed image
+	local parttype=gpt
+
 	## Write image to disk
 	flash_image
 
 	## Fix things up
 
-	# verify
-	sgdisk -v "${device}"
+	"${parttype}"_verify_disk "${device}"
 
-	# move GPT partition to end
-	sgdisk -e "${device}"
-
-	# resize partition to use all space available in disk
-	#  -d 2  deletes the partition 2
-	#  -n 2:0:0  recreates partition 2, using the default start/end values -- start is the same as the old partition; end is the maximum available
-	sgdisk -d 2 -n 2:0:0 "${device}"
+	"${parttype}"_fix_partitions "${device}"
 
 	partprobe "${device}"
 
@@ -501,7 +523,7 @@ EOF
 	# resize filesystem to use all space available in the partition
 	resize2fs "${rootpartition}"
 
-	sgdisk -v "${device}"
+	"${parttype}"_verify_disk "${device}"
 
 	set +x
 
@@ -887,7 +909,7 @@ guided() {
 }
 
 prepare_alpine() {
-	apk add sgdisk
+	apk add sfdisk sgdisk
 }
 
 prepare_debian_like() {
