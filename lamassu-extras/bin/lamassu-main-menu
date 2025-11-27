@@ -3,10 +3,10 @@
 
 lamassu_bin_dir="$(dirname "$0")"
 
-XUBUNTU_IMAGE="$(realpath -e "${lamassu_bin_dir}/../xubuntu.img.gz")"
-XUBUNTU_IMAGE_ENV="$(realpath -e "${lamassu_bin_dir}/../xubuntu.env")"
-LMX_RELEASE_NUMBER="$(grep '^RELEASE_NUMBER=' "${XUBUNTU_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_RELEASE_NUMBER
-LMX_MACHINE_VERSION="$(grep '^MACHINE_VERSION=' "${XUBUNTU_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_MACHINE_VERSION
+LMX_IMAGE="$(realpath -e "${lamassu_bin_dir}/../xubuntu.img.gz")"
+LMX_IMAGE_ENV="$(realpath -e "${lamassu_bin_dir}/../xubuntu.env")"
+LMX_RELEASE_NUMBER="$(grep '^RELEASE_NUMBER=' "${LMX_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_RELEASE_NUMBER
+LMX_MACHINE_VERSION="$(grep '^MACHINE_VERSION=' "${LMX_IMAGE_ENV}" | cut -d= --complement -f1)"; export LMX_MACHINE_VERSION
 
 UBILINUX_IMAGE="$(realpath -e "${lamassu_bin_dir}/../ubilinux.img.gz")"
 UBILINUX_IMAGE_ENV="$(realpath -e "${lamassu_bin_dir}/../ubilinux.env")"
@@ -32,7 +32,7 @@ tui_main_menu() {
 }
 
 do_guided() {
-	"${lamassu_bin_dir}"/flash-image.sh guided "${XUBUNTU_IMAGE}" "${UBILINUX_IMAGE}"
+	"${lamassu_bin_dir}"/flash-image.sh guided "${LMX_IMAGE}" "${UBILINUX_IMAGE}"
 }
 
 do_shell() {
