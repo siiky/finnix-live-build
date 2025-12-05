@@ -2,20 +2,22 @@
 
 # SPDX-PackageSummary: finnix-live-build
 # SPDX-FileComment: ssh-agent
-# SPDX-FileCopyrightText: Copyright (C) 2020-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2020 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 
 # Meant to be run from .profile or equivalent, to provide a per-user
 # shared SSH agent environment
 
-[ -n "${HOME}" ] || exit 1
+[ -n "${USER}" ] || return
+[ -n "${HOME}" ] || return
+
+if [ -n "${SSH_AUTH_SOCK}" ]; then
+    return
+fi
 
 if [ ! -e "${HOME}/.ssh/ssh-agent.sh" ]; then
     mkdir -p "${HOME}/.ssh"
     ssh-agent -s | grep ^SSH >"${HOME}/.ssh/ssh-agent.sh"
-    # shellcheck source=/dev/null
-    . "${HOME}/.ssh/ssh-agent.sh"
-    echo "${SSH_AGENT_PID}" >"${HOME}/.ssh/ssh-agent.pid"
 fi
 # shellcheck source=/dev/null
 . "${HOME}/.ssh/ssh-agent.sh"

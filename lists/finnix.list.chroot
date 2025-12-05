@@ -1,9 +1,10 @@
 # SPDX-PackageSummary: finnix-live-build
-# SPDX-FileCopyrightText: Copyright (C) 2020-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2020 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 2048
 2ping
-{%- if ARCH == "amd64" or ARCH == "i386" %}
+7zip
+{%- if ARCH == "amd64" %}
 acpi
 {%- endif %}
 aespipe
@@ -29,20 +30,21 @@ ca-certificates
 cdpr
 chntpw
 cifs-utils
-{%- if ARCH == "amd64" or ARCH == "i386" %}
+{%- if ARCH == "amd64" %}
 cmospwd
 {%- endif %}
 console-data
 console-setup
 cpio
 cpu-checker
-{%- if ARCH == "amd64" or ARCH == "i386" %}
+{%- if ARCH == "amd64" %}
 cpuid
 {%- endif %}
 cron
 cryptsetup-bin
 curl
 dbus
+dc3dd
 debootstrap
 {%- if ARCH != "ppc64el" and ARCH != "s390x" %}
 dmidecode
@@ -69,7 +71,7 @@ fetchmail
 file
 finger
 fsarchiver
-{%- if ARCH == "amd64" or ARCH == "i386" %}
+{%- if ARCH == "amd64" %}
 fuseext2
 {%- endif %}
 fxload
@@ -122,7 +124,7 @@ lrzsz
 lsb-release
 lshw
 lsof
-{%- if ARCH == "amd64" or ARCH == "i386" or ARCH == "s390x" %}
+{%- if ARCH == "amd64" or ARCH == "s390x" %}
 ltrace
 {%- endif %}
 lvm2
@@ -159,7 +161,6 @@ oathtool
 openssh-client
 openssh-server
 openvpn
-p7zip
 partclone
 parted
 patch
@@ -201,7 +202,6 @@ stress
 stunnel4
 sunxi-tools
 sudo
-systemd-resolved
 systemd-timesyncd
 systemd-zram-generator
 tcpdump
@@ -239,7 +239,7 @@ xxd
 xxhash
 xz-utils
 zerofree
-{%- if ARCH == "amd64" or ARCH == "armhf" or ARCH == "i386" or ARCH == "ppc64el" %}
+{%- if ARCH == "amd64" or ARCH == "ppc64el" %}
 {#- Weird combination; correct as of 2024-02-09 #}
 zfs-fuse
 {%- endif %}

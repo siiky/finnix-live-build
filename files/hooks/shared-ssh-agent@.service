@@ -3,13 +3,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 [Unit]
-Description=Kernel command line SSH daemon
-After=network.target
-ConditionKernelCommandLine=sshd
+Description=Shared SSH agent init (%i)
+Before=getty.target
+After=nss-user-lookup.target
 
 [Service]
-Type=oneshot
-ExecStart=systemctl --no-block start ssh.service
+ExecStart=/usr/lib/{{ PRODUCT_ID }}/shared-ssh-agent
+Type=notify
+NotifyAccess=all
+User=%i
 
 [Install]
 WantedBy=multi-user.target

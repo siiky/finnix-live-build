@@ -1,5 +1,5 @@
 # SPDX-PackageSummary: finnix-live-build
-# SPDX-FileCopyrightText: Copyright (C) 2023-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2023 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 
 # https://pre-commit.com/hooks.html
@@ -12,7 +12,7 @@ fail_fast: false
 
 repos:
   - repo: "https://github.com/pre-commit/pre-commit-hooks"
-    rev: "v4.6.0"
+    rev: "v5.0.0"
     hooks:
       - id: "check-added-large-files"
       - id: "check-case-conflict"
@@ -37,6 +37,22 @@ repos:
       - id: "yamllint"
 
   - repo: "https://github.com/fsfe/reuse-tool"
-    rev: "v3.0.2"
+    rev: "v5.0.2"
     hooks:
       - id: "reuse"
+
+  - repo: "https://github.com/rhysd/actionlint"
+    rev: "v1.7.7"
+    hooks:
+      - id: "actionlint"
+
+  - repo: "https://github.com/psf/black"
+    rev: "25.1.0"
+    hooks:
+      - id: "black"
+
+  - repo: "https://github.com/pycqa/flake8"
+    rev: "7.2.0"
+    hooks:
+      - id: "flake8"
+        additional_dependencies: ["Flake8-pyproject"]

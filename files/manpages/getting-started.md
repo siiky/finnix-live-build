@@ -1,18 +1,18 @@
 # WELCOME
 
-Welcome to {{ PRODUCT }}\!
+Welcome to {{ PRODUCT }}!
 
 # CUSTOM COMMANDS
 
 This is mostly a fully-featured Debian-based text utility distribution, but
 there are a few custom utilities to know about:
 
-  - 0
+- 0
 
 > Easy (and mostly keyboard-agnostic) way to change your locale and keyboard
 > information.
 
-  - wifi-connect "Access Point" "Passphrase"
+- wifi-connect "Access Point" "Passphrase"
 
 > Set up a standard WPA wireless connection.
 
@@ -50,5 +50,5 @@ GitHub](https://github.com/finnix/finnix-docs).{% endif %}
 
 This document is provided under the following license:
 
-    SPDX-FileCopyrightText: Copyright (C) 2021-2024 Ryan Finnie
+    SPDX-FileCopyrightText: © 2021 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0

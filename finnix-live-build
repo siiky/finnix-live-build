@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # SPDX-PackageSummary: finnix-live-build
-# SPDX-FileCopyrightText: Copyright (C) 2020-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2020 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 
 set -e
@@ -9,7 +9,7 @@ set -e
 PRODUCT="${PRODUCT:-Finnix}"
 PRODUCT_ID="${PRODUCT_ID:-finnix}"
 VERSION="${VERSION:-dev}"
-CODENAME="${CODENAME:-Eau Claire}"
+CODENAME="${CODENAME:-Fond du Lac}"
 ARCH="${ARCH:-$(dpkg --print-architecture)}"
 SOURCE_ISO="${SOURCE_ISO:-false}"
 CACHE_FROZEN="${CACHE_FROZEN:-false}"
@@ -20,6 +20,7 @@ BUILD_URL="${BUILD_URL:-}"
 PYTHON="${PYTHON:-python3}"
 UNSTABLE_PIN="${UNSTABLE_PIN:-true}"
 BUILD_UUID="${BUILD_UUID:-$(uuidgen -r)}"
+DOCKER_BUILD="${DOCKER_BUILD:-false}"
 
 lock() {
     _file=$1
@@ -56,6 +57,7 @@ render() {
         "BUILD_TAGS=${BUILD_TAGS}" \
         "BUILD_URL=${BUILD_URL}" \
         "BUILD_UUID=${BUILD_UUID}" \
+        "DOCKER_BUILD=${DOCKER_BUILD}" \
         "${BASE_DIR}/tools/jinja2-render"
 }
 
@@ -87,6 +89,7 @@ lint_shfmt() {
 # Required: librsvg2-bin (rsvg-convert): splash.png
 # Required: fonts-liberation2: splash.png
 # Required: pandoc: Manpage builds
+# Required: uuid-runtime (uuidgen): UUID generation
 # Optional: shellcheck (shellcheck): Lint, required for LINT=true
 # Optional: flake8 (${PYTHON} -mflake8): Lint, required for LINT=true
 # Optional: shfmt (shfmt): Lint, optional for LINT=true
@@ -125,12 +128,6 @@ DATE="$(date -u +"%F")"
 YEAR="$(date -u +"%Y")"
 SQUASHFS_COMP="xz"
 if [ "${ARCH}" = "amd64" ]; then
-    BINARY_IMAGES="iso-hybrid"
-    BOOTLOADERS="grub-efi,syslinux"
-    ISO_FILENAME="${PRODUCT_ID}-${ARCH}.hybrid.iso"
-    MEMTEST="memtest86+"
-    SQUASHFS_COMP="xz -Xbcj x86"
-elif [ "${ARCH}" = "i386" ]; then
     BINARY_IMAGES="iso-hybrid"
     BOOTLOADERS="grub-efi,syslinux"
     ISO_FILENAME="${PRODUCT_ID}-${ARCH}.hybrid.iso"
@@ -214,6 +211,10 @@ fi
 if [ "${container}" = "systemd-nspawn" ]; then
     BUILD_TAGS="${BUILD_TAGS} systemd-nspawn"
 fi
+# shellcheck disable=SC2154
+if [ "${container}" = "podman" ]; then
+    BUILD_TAGS="${BUILD_TAGS} podman"
+fi
 
 if [ -e /etc/os-release ]; then
     for i in BUILD_OS_ID BUILD_OS_VERSION_CODENAME BUILD_OS_VERSION_ID; do
@@ -262,26 +263,35 @@ if [ -z "${BUILD_URL}" ] && [ -n "${GITHUB_RUN_ID}" ]; then
 fi
 
 if [ "${LINT}" = "true" ]; then
-    shellcheck "${BASE_DIR}/finnix-live-build"
-    [ "${has_shfmt}" = "true" ] && lint_shfmt "${BASE_DIR}/finnix-live-build"
-    for script_dir in "${BASE_DIR}/tools" "${BASE_DIR}/.rrpcid/jobs"/*; do
+    failed_lint=false
+    shellcheck "${BASE_DIR}/finnix-live-build" || failed_lint=true
+    if [ "${has_shfmt}" = "true" ]; then lint_shfmt "${BASE_DIR}/finnix-live-build" || failed_lint=true; fi
+    for script_dir in "${BASE_DIR}/tools" "${BASE_DIR}/.rrpcid/jobs"/* "${BASE_DIR}/hooks"; do
         # Interpet output as words
         # shellcheck disable=SC2013
         for fn in $(grep -l -E '^#!/(usr/)?bin/(env )?(ba)?sh' "${script_dir}"/*); do
             [ -e "${fn}" ] || continue
-            shellcheck "${fn}"
-            [ "${has_shfmt}" = "true" ] && lint_shfmt "${fn}"
+            shellcheck "${fn}" || failed_lint=true
+            if [ "${has_shfmt}" = "true" ]; then lint_shfmt "${fn}" || failed_lint=true; fi
         done
-        grep -l -E '^#!/(usr/)?bin/(env )?python3' "${script_dir}"/* | xargs -r "${PYTHON}" -mflake8 --config=/dev/null --max-line-length=120
+        grep -l -E '^#!/(usr/)?bin/(env )?python3' "${script_dir}"/* | xargs -r "${PYTHON}" -mflake8 --config=/dev/null --max-line-length=120 || failed_lint=true
     done
 
+    mkdir -p "${LINT_DIR}/md/in" "${LINT_DIR}/md/out"
     for fn in "${BASE_DIR}"/*.md "${BASE_DIR}/.rrpcid"/*.md "${BASE_DIR}/files/manpages"/*.md; do
-        md_temp_in_fn="in_$(basename "${fn}")"
-        md_temp_out_fn="out_$(basename "${fn}")"
-        render <"${fn}" >"${LINT_DIR}/${md_temp_in_fn}"
-        pandoc -s -t gfm+smart --columns=80 -i "${LINT_DIR}/${md_temp_in_fn}" -o "${LINT_DIR}/${md_temp_out_fn}"
-        diff -u "${LINT_DIR}/${md_temp_in_fn}" "${LINT_DIR}/${md_temp_out_fn}"
+        md_full_path="${fn#"${BASE_DIR}/"}"
+        md_dir="$(dirname "${md_full_path}")"
+        mkdir -p "${LINT_DIR}/md/in/${md_dir}" "${LINT_DIR}/md/out/${md_dir}"
+        render <"${fn}" >"${LINT_DIR}/md/in/${md_full_path}"
+        pandoc -s -t gfm+smart --columns=80 -i "${LINT_DIR}/md/in/${md_full_path}" -o "${LINT_DIR}/md/out/${md_full_path}"
     done
+    diff -ru "${LINT_DIR}/md/in" "${LINT_DIR}/md/out" || failed_lint=true
+
+    if [ "${failed_lint}" = "true" ]; then
+        echo
+        echo "Failed lint checks"
+        exit 1
+    fi
 fi
 
 mkdir -p "${LOCK_DIR}"
@@ -290,6 +300,7 @@ lock "${LOCK_DIR}/${LOCK_NAME}.lock"
 rm -rf "${RENDER_DIR}"
 render_files "${RENDER_DIR}/hooks" "${BASE_DIR}/hooks"/*.hook.*
 render_files "${RENDER_DIR}/hook-files" "${FILES_DIR}/hooks"/*
+render_files "${RENDER_DIR}/docker-files" "${FILES_DIR}/docker"/*
 render_files "${RENDER_DIR}/package-lists" "${BASE_DIR}/lists"/*.list.chroot
 for i in "${FILES_DIR}/manpages"/*.md; do
     basefn="$(basename "$i" .md)"
@@ -329,11 +340,31 @@ if [ "${SOURCE_ISO}" = "false" ]; then
     done
 fi
 
+if [ "${DOCKER_BUILD}" = "true" ]; then
+    DOCKER_DIR="${BUILD_DIR}/docker"
+    rm -rf "${DOCKER_DIR}"
+    mkdir -p "${DOCKER_DIR}"
+    cp -a "${RENDER_DIR}/docker-files/." "${DOCKER_DIR}/"
+    render_files "${DOCKER_DIR}/hooks" "${LIVE_BUILD}/share/hooks/normal"/*.hook.chroot
+    cp -a "${RENDER_DIR}/hooks"/*.hook.chroot "${DOCKER_DIR}/hooks/"
+    mkdir -p "${DOCKER_DIR}/hook-files"
+    cp -a "${RENDER_DIR}/hook-files/." "${DOCKER_DIR}/hook-files/"
+    chmod 0755 "${DOCKER_DIR}/container-build" "${DOCKER_DIR}/hooks"/*.hook.chroot
+    mkdir -p "${DOCKER_DIR}/package-lists"
+    cp -a "${RENDER_DIR}/package-lists"/*.chroot "${DOCKER_DIR}/package-lists/"
+    mkdir -p "${DOCKER_DIR}/archives"
+    cp -a "${RENDER_DIR}/archives"/*.chroot "${DOCKER_DIR}/archives/"
+
+    exit 0
+fi
+
 cd /
 rm -rf "${LB_DIR}"
 mkdir -p "${LB_DIR}"
 cd "${LB_DIR}"
 
+# do_lb_config references arguments, but none are ever passed.
+# shellcheck disable=SC2120
 do_lb_config() {
     # Note that --source true also requires --apt-source-archives true
 
@@ -366,15 +397,7 @@ do_lb_config() {
         "$@"
 }
 
-if [ "${ARCH}" = "riscv64" ]; then
-    # Avoid configuring unstable twice (apt gives a warning)
-    UNSTABLE_PIN=false
-    do_lb_config \
-        --distribution unstable \
-        --security false
-else
-    do_lb_config
-fi
+do_lb_config
 
 mkdir -p "${LB_CACHE_DIR}"
 if [ "${CACHE_FROZEN}" = "false" ]; then

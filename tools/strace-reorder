@@ -2,7 +2,7 @@
 
 # SPDX-PackageSummary: finnix-live-build
 # SPDX-FileComment: strace-reorder
-# SPDX-FileCopyrightText: Copyright (C) 2011-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2011 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 
 import argparse
@@ -31,7 +31,7 @@ def numfmt(
     prefixes: List of (decimal, binary) prefix strings, ascending
     """
     # SPDX-SnippetComment: Originally from https://github.com/rfinnie/rf-pymods
-    # SPDX-SnippetCopyrightText: Copyright (C) 2020-2024 Ryan Finnie
+    # SPDX-SnippetCopyrightText: Copyright (C) 2020-2025 Ryan Finnie
     # SPDX-LicenseInfoInSnippet: MIT
 
     class NumberFormat(float):
@@ -77,29 +77,19 @@ def numfmt(
 
 class StraceReorder:
     regexps = (
-        re.compile(
-            r"^[0-9]+ +(?P<syscall>(open|openat))\(.*?\) = [0-9]+<(?P<filename>.*?)(<char [0-9]+:[0-9]+>)?>$"
-        ),
-        re.compile(
-            r"^[0-9]+ +(?P<syscall>(execve))\(\"(?P<filename>.*?)\".*?\) = [0-9]+$"
-        ),
+        re.compile(r"^[0-9]+ +(?P<syscall>(open|openat))\(.*?\) = [0-9]+<(?P<filename>.*?)(<char [0-9]+:[0-9]+>)?>$"),
+        re.compile(r"^[0-9]+ +(?P<syscall>(execve))\(\"(?P<filename>.*?)\".*?\) = [0-9]+$"),
     )
 
     def parse_args(self, argv=None):
         if argv is None:
             argv = sys.argv
 
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
+        parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-        parser.add_argument(
-            "trace_file", nargs="?", type=argparse.FileType("r"), default=sys.stdin
-        )
+        parser.add_argument("trace_file", nargs="?", type=argparse.FileType("r"), default=sys.stdin)
 
-        parser.add_argument(
-            "--debug", action="store_true", help="Print debugging information"
-        )
+        parser.add_argument("--debug", action="store_true", help="Print debugging information")
         parser.add_argument(
             "--layout",
             default="end",
@@ -149,7 +139,7 @@ class StraceReorder:
             seen_size += root_file.stat().st_size
 
         # The position numbers work with SquashFS order files as follows:
-        #     <beginning> 65535 65534 [...] 3 2 1 0 -1 -2 -3 [...] -65534 -65535 <end>
+        #     <beginning> 32767 32766 [...] 3 2 1 0 -1 -2 -3 [...] -32767 -32768 <end>
         # All files not in the order file default to 0.
         # Beginning or end doesn't matter for flash devices, but end is
         # preferred for CDs since the highest speeds are at the end of
@@ -164,13 +154,15 @@ class StraceReorder:
                     pos = ((len(seen) - idx) / 2) + 1
             elif self.args.layout == "random":
                 # Again, please don't use this.
-                pos = random.randint(-65535, 65535)
+                pos = random.randint(-32768, 32767)
             elif self.args.layout == "beginning":
                 # Files move forward from the beginning of the CD
                 pos = len(seen) - idx
             else:
                 # Files move forward to the end of the CD
                 pos = -1 - idx
+            if pos < -32768 or pos > 32767:
+                continue
             print("{}\t{}".format(str(file)[1:], int(pos)))
         logging.info(
             "{files} files arranged at {layout}, {size.real:0.02f} {size.prefix}B".format(

@@ -17,7 +17,7 @@ encountered, and is not meant to be exhaustive.
 
 # OPTIONS
 
-\-i *interface*
+-i *interface*
 
 > Interface name to configure. If not specified, the interface name will be
 > selected automatically, if the system has one wireless interface. If more than
@@ -32,5 +32,5 @@ None known, many assumed.
 
 This document is provided under the following license:
 
-    SPDX-FileCopyrightText: Copyright (C) 2021-2024 Ryan Finnie
+    SPDX-FileCopyrightText: © 2021 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0

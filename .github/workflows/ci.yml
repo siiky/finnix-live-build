@@ -1,5 +1,5 @@
 # SPDX-PackageSummary: finnix-live-build
-# SPDX-FileCopyrightText: Copyright (C) 2020-2024 Ryan Finnie
+# SPDX-FileCopyrightText: © 2020 Ryan Finnie <ryan@finnie.org>
 # SPDX-License-Identifier: MPL-2.0
 ---
 name: "ci"
@@ -8,11 +8,6 @@ name: "ci"
   pull_request:
   workflow_dispatch:
 jobs:
-  pre-commit:
-    runs-on: "ubuntu-latest"
-    steps:
-      - uses: "actions/checkout@v4"
-      - uses: "pre-commit/action@v3.0.1"
   lint:
     runs-on: "ubuntu-latest"
     steps:
@@ -22,8 +17,8 @@ jobs:
       - name: "Dependency packages"
         run: |
           sudo apt update
-          sudo apt -y install $(tools/get-dependencies --only required)
-          for pkg in $(tools/get-dependencies --only optional); do
+          tools/get-dependencies --only required -0 | xargs -0 sudo apt -y install
+          tools/get-dependencies --only optional | while IFS='' read -r pkg; do
             sudo apt -y install "${pkg}" || true
           done
       - name: "Lint codebase"
@@ -31,10 +26,21 @@ jobs:
           LINT: "true"
         run: "./finnix-live-build"
   build:
-    runs-on: "ubuntu-latest"
+    name: "Build image (${{ matrix.arch }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "amd64"
+            runs-on: "ubuntu-latest"
+          - arch: "arm64"
+            runs-on: "ubuntu-24.04-arm"
+    runs-on: "${{ matrix.runs-on }}"
     permissions:
       id-token: "write"
       attestations: "write"
+    env:
+      BUILD_WORKFLOW_TAG: "ci"
     steps:
       - uses: "actions/checkout@v4"
         with:
@@ -47,25 +53,25 @@ jobs:
       - name: "Dependency packages"
         run: |
           sudo apt update
-          sudo apt -y install $(tools/get-dependencies --only required)
-          for pkg in $(tools/get-dependencies --only optional); do
+          tools/get-dependencies --only required -0 | xargs -0 sudo apt -y install
+          tools/get-dependencies --only optional | while IFS='' read -r pkg; do
             sudo apt -y install "${pkg}" || true
           done
       - name: "Build image"
         run: |
           env | grep ^GITHUB_ | sudo tee -a /etc/environment >/dev/null
           sudo chown -R root:root .
-          sudo env BUILD_TAGS="ci" ./finnix-live-build
+          sudo env BUILD_TAGS="${BUILD_WORKFLOW_TAG}" ./finnix-live-build
           sudo rm -rf build/cache/lb/bootstrap build/cache/lb/contents.chroot build/cache/lb/indices.bootstrap
           sudo chown -R "$(id -un):$(id -gn)" .
       - name: "Attest"
-        uses: "actions/attest-build-provenance@v1"
+        uses: "actions/attest-build-provenance@v3"
         with:
           subject-path: "${{ github.workspace }}/build/lb/finnix-*.iso"
       - name: "Upload artifacts"
         uses: "actions/upload-artifact@v4"
         with:
-          name: "finnix-live-build.${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}.${{ github.run_id }}"
+          name: "finnix-live-build.${{ github.workflow }}.${{ github.job }}.${{ matrix.arch }}.${{ github.run_number }}.${{ github.run_id }}"
           path: |
             build/lb/finnix-*
             build/lb/chroot.files
@@ -74,3 +80,54 @@ jobs:
           compression-level: 0
           # Reduced retention for CI builds
           retention-days: 5
+  build-docker:
+    name: "Build Docker image (${{ matrix.arch }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "amd64"
+            runs-on: "ubuntu-latest"
+          - arch: "arm64"
+            runs-on: "ubuntu-24.04-arm"
+    runs-on: "${{ matrix.runs-on }}"
+    permissions:
+      id-token: "write"
+      contents: "read"
+      packages: "write"
+      attestations: "write"
+    env:
+      BUILD_WORKFLOW_TAG: "ci"
+    steps:
+      - uses: "actions/checkout@v4"
+        with:
+          submodules: true
+      - name: "Authentication"
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: "Set environment variables"
+        run: |
+          IMAGE_NAME="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_TAG="${BUILD_WORKFLOW_TAG}-${{ matrix.arch }}"
+          echo "IMAGE_NAME=${IMAGE_NAME}" >>"${GITHUB_ENV}"
+          echo "IMAGE_TAG=${IMAGE_TAG}" >>"${GITHUB_ENV}"
+      - name: "Build image"
+        run: |
+          IMAGE_ID="ghcr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+          docker image build -t "${IMAGE_ID}" \
+              --build-arg BUILD_TAGS="docker ${BUILD_WORKFLOW_TAG}" \
+              --build-arg GITHUB_SERVER_URL \
+              --build-arg GITHUB_REPOSITORY \
+              --build-arg GITHUB_RUN_ID \
+              .
+          docker image history "${IMAGE_ID}"
+          docker image inspect "${IMAGE_ID}"
+          docker image push "${IMAGE_ID}"
+          IMAGE_DIGEST="sha256:$(docker buildx imagetools inspect "${IMAGE_ID}" --raw | sha256sum | awk '{print $1}')"
+          echo "IMAGE_DIGEST=${IMAGE_DIGEST}" >>"${GITHUB_ENV}"
+      - name: "Attest"
+        uses: "actions/attest-build-provenance@v3"
+        with:
+          subject-name: "ghcr.io/${{ env.IMAGE_NAME }}"
+          subject-digest: "${{ env.IMAGE_DIGEST }}"
+          push-to-registry: true

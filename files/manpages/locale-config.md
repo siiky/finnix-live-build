@@ -14,9 +14,9 @@ language settings. As a (potentially misconfigured) keyboard is required to run
 this utility, `0` was chosen to minimize the number of keys needed to configure
 the keyboard:
 
-  - 0
-  - Enter
-  - Arrow keys
+- 0
+- Enter
+- Arrow keys
 
 Once run, keyboard changes should take effect immediately, but you must restart
 current shells for language changes to take effect.
@@ -33,5 +33,5 @@ None known, many assumed.
 
 This document is provided under the following license:
 
-    SPDX-FileCopyrightText: Copyright (C) 2021-2024 Ryan Finnie
+    SPDX-FileCopyrightText: © 2021 Ryan Finnie <ryan@finnie.org>
     SPDX-License-Identifier: CC-BY-SA-4.0
