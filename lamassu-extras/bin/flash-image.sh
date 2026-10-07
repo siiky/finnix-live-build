@@ -8,14 +8,7 @@ ddextra=''
 whiptail=''
 
 device='DEVICE'
-platform='PLATFORM'
-model='MODEL'
-printer='PRINTER'
-number_of_cassettes='NUMBER_OF_CASSETTES'
-number_of_recyclers='NUMBER_OF_RECYCLERS'
 image='IMAGE'
-xubuntu_image='XUBUNTU_IMAGE'
-ubilinux_image='UBILINUX_IMAGE'
 image_release_number=''
 image_machine_version=''
 
@@ -26,31 +19,7 @@ usage: ${progname} SUBCOMMAND
 Where SUBCOMMAND is one of the following:
 
 	guided: interactive TUI to choose what to do.
-	install: flash an image and configure it afterwards.
-	configure: configure an image that's already installed.
-
-EOF
-	exit 1
-}
-
-usage_configure() {
-	cat >&2 <<EOF
-usage: ${progname} configure ${device} ${platform} ${model} [OPTION...]
-
-ROOT may be either the (unmounted) DEVICE, or the mount DIRECTORY of the root partition. If this is an UP or UP4000, DEVICE is likely /dev/mmcblk0.
-PLATFORM is the model of the board or tablet (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, acp, coincloud, generalbytes, genmega.
-MODEL is the model of the machine: aveiro, douro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
-
-WARNING: Be sure to specify the correct DEVICE!
-
-OPTION:
-	--printer ${printer}	The model of the printer: nippon, zebra, genmega, none (defaults to none).
-	--number_of_cassettes ${number_of_cassettes}	The number of installed cassettes (only for aveiro, tejo).
-	--number_of_recyclers ${number_of_recyclers}	The number of installed recyclers (only for aveiro, grandola).
-
-EXAMPLES:
-To configure an already-installed machine:
-	${progname} configure /dev/mmcblk0 upboard tejo --printer nippon
+	install: flash an image.
 
 EOF
 	exit 1
@@ -58,27 +27,19 @@ EOF
 
 usage_install() {
 	cat >&2 <<EOF
-usage: ${progname} install ${device} ${image} ${platform} ${model} [OPTION...]
+usage: ${progname} install ${device} ${image}
 
 If this is an UP board, DEVICE is likely /dev/mmcblk0.
-IMAGE is an image (uncompressed, gzipped, or xzipped) or - to read from stdin.
-
-PLATFORM is the model of the board or tablet (for Lamassu machines), or of the maker (for non-Lamassu machines): up4000, upboard, acp, coincloud, generalbytes, genmega.
-MODEL is the model of the machine: aveiro, douro, gaia, grandola, tejo, sintra, jcm-ipro-rc, mei-bnr, mei-scr, gemini, gmuk1, gmuk2, wallkiosk, batm3, batm7in.
+IMAGE is an image (uncompressed ISO/WIC, gzipped, lzipped, or xzipped) or - to read from stdin.
 
 WARNING: Be sure to specify the correct DEVICE, it will be overwritten!
 
-OPTION:
-	--printer ${printer}	The model of the printer: nippon, zebra, genmega, none (defaults to none).
-	--number_of_cassettes ${number_of_cassettes}	The number of installed cassettes (only for aveiro, tejo).
-	--number_of_recyclers ${number_of_recyclers}	The number of installed recyclers (only for aveiro, grandola).
-
 EXAMPLES:
-To install an uncompressed image file:
-	${progname} install /dev/mmcblk0 image.img up4000 tejo --printer nippon
+To install an uncompressed WIC image file:
+	${progname} install /dev/mmcblk0 image.wic
 
-To install a gzipped image file:
-	${progname} install /dev/mmcblk0 image.img.gz up4000 tejo --printer nippon
+To install a gzipped WIC image file:
+	${progname} install /dev/mmcblk0 image.wic.gz
 
 EOF
 	exit 1
@@ -86,12 +47,11 @@ EOF
 
 usage_guided() {
 	cat >&2 <<EOF
-usage: ${progname} guided ${xubuntu_image} [${ubilinux_image}]
+usage: ${progname} guided ${image}
 
 This subcommand presents the user with an interactive menu that they can follow, as an alternative to the other subcommands.
 
-XUBUNTU_IMAGE is a Xubuntu image file (uncompressed, gzipped, or xzipped).
-UBILINUX_IMAGE is an Ubilinux image file (uncompressed, gzipped, or xzipped).
+IMAGE is an image file (uncompressed ISO/WIC, gzipped, lzipped, or xzipped).
 
 EOF
 	exit 1
@@ -114,44 +74,6 @@ parse_device_or_directory() {
 	parse_device "$1" || parse_directory "$1"
 }
 
-parse_platform() {
-	arg="$1"
-	case "${arg}" in
-		up4000|upboard|acp);; # Board/Tablet name, for Lamassu machines
-		coincloud|genmega|generalbytes);; # Maker name, for non-Lamassu machines
-		*) return 1;;
-	esac
-	platform="${arg}"
-}
-
-parse_model() {
-	arg="$1"
-	case "${platform}" in
-		up4000|upboard|acp)
-			case "${arg}" in
-				aveiro|douro|gaia|grandola|tejo|sintra);;
-				*) return 1;;
-			esac;;
-		coincloud)
-			case "${arg}" in
-				jcm-ipro-rc|mei-bnr|mei-scr);;
-				*) return 1;;
-			esac;;
-		genmega)
-			case "${arg}" in
-				gemini|gmuk1|gmuk2|wallkiosk);;
-				*) return 1;;
-			esac;;
-		generalbytes)
-			case "${arg}" in
-				batm3|batm7in);;
-				*) return 1;;
-			esac;;
-		*) return 1;;
-	esac
-	model="${arg}"
-}
-
 parse_image_stdin() {
 	if [ "$1" != '-' ]; then return 1; fi
 	image="$1"
@@ -167,91 +89,23 @@ parse_image() {
 	parse_image_file "$@" || parse_image_stdin "$@"
 }
 
-parse_xubuntu_image_file() {
-	if [ ! -f "$1" ]; then return 1; fi
-	xubuntu_image="$1"
-}
-
-parse_ubilinux_image_file() {
-	if [ ! -f "$1" ]; then return 1; fi
-	ubilinux_image="$1"
-}
-
-parse_printer() {
-	case "$1" in
-		nippon) printer='Nippon-2511D-2';;
-		zebra) printer='Zebra-KR-403';;
-		genmega) printer=genmega;;
-		none) printer=None;;
-		"") printer=None;;
-		*) return 1;;
-	esac
-}
-
-check_number() {
-	echo "$1" | grep -qw '[0-9]\+'
-}
-
-parse_number_of_cassettes() {
-	# shellcheck disable=SC2310
-	check_number "$1" && number_of_cassettes="$1"
-}
-
-parse_number_of_recyclers() {
-	# shellcheck disable=SC2310
-	check_number "$1" && number_of_recyclers="$1"
-}
-
-parse_rest() {
-	while [ "$#" -ge 2 ]; do
-		# shellcheck disable=SC2310
-		case "$1" in
-			--printer) parse_printer "$2";;
-			--number_of_cassettes) parse_number_of_cassettes "$2";;
-			--number_of_recyclers) parse_number_of_recyclers "$2";;
-			*) echo >&2 "Unknown option '$1'"; return 1;;
-		esac || return 1
-		shift 2
-	done
-
-	if [ "$#" -gt 0 ]; then
-		return 1
-	fi
-}
-
-# ROOT PLATFORM MODEL [REST...]
-parse_args_configure() {
-	device='ROOT'
-	# shellcheck disable=SC2310
-	parse_device_or_directory "$1" && shift \
-		&& parse_platform "$1" && shift \
-		&& parse_model "$1" && shift \
-		&& parse_rest "$@"
-}
-
-# DEVICE IMAGE PLATFORM MODEL [REST...]
+# DEVICE IMAGE
 parse_args_install() {
 	device='DEVICE'
 	# shellcheck disable=SC2310
 	parse_device "$1" && shift \
-		&& parse_image "$1" && shift \
-		&& parse_platform "$1" && shift \
-		&& parse_model "$1" && shift \
-		&& parse_rest "$@"
+		&& parse_image "$1"
 }
 
-# XUBUNTU [UBILINUX]
+# IMAGE
 parse_args_guided() {
-	# shellcheck disable=SC2310
-	parse_xubuntu_image_file "$1" || return 1
-	# shellcheck disable=SC2310
-	parse_ubilinux_image_file "$2" || true
+	parse_image "$1"
 }
 
 settraps() {
 	# shellcheck disable=SC2154
 	trap 'retcode="$?"
-		if [ -z "${retcode}" ]; then
+		if [ "${retcode}" -eq 0 ]; then
 			echo >&2 "All went well, please reboot now."
 		else
 			echo >&2 "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!! Something went wrong, DO NOT REBOOT !!!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nIf possible go over the process again, or contact support."
@@ -261,6 +115,10 @@ settraps() {
 		INT TERM EXIT
 }
 
+# TODO Grândola support
+# In the old process, the ARCA license was created after flashing, during the
+# configuration step; while the new configuration screen is used on first boot,
+# after flashing. However, we don't want to give OPs our ARCA activation key...
 try_create_envoyrpc_license() {
 	local rootfs="$1"
 
@@ -307,6 +165,8 @@ EOF
 	 | tee "${rootfs}/EnvoyRPC/htdocs/ac/license/envoyrpc.lic" >&2
 }
 
+# TODO GenMega w/ dispenser support
+# See try_create_envoyrpc_license
 try_set_genmega_cdu_license() {
 	if [ "${platform}" != 'genmega' ]; then
 		return 0
@@ -324,45 +184,6 @@ EOF
 
 	local device_config="$1"
 	json_setpath_inplace '"billDispenser", "license"' '"'"${GENMEGA_CDU_LICENSE}"'"' "${device_config}"
-}
-
-try_set_printer() {
-	if [ "${printer}" = 'PRINTER' ]; then
-		printer=None
-	fi
-
-	local device_config="$1"
-	json_setpath_inplace '"kioskPrinter", "model"' '"'"${printer}"'"' "${device_config}"
-}
-
-try_set_number_of_cassettes() {
-	case "${model}" in
-		aveiro|tejo);;
-		*) return 0;;
-	esac
-
-	# shellcheck disable=SC2310
-	if ! check_number "${number_of_cassettes}"; then
-		return 0
-	fi
-
-	local device_config="$1"
-	json_setpath_inplace '"billDispenser", "cassettes"' "${number_of_cassettes}" "${device_config}"
-}
-
-try_set_number_of_recyclers() {
-	case "${model}" in
-		aveiro|grandola);;
-		*) return 0;;
-	esac
-
-	# shellcheck disable=SC2310
-	if ! check_number "${number_of_recyclers}"; then
-		return 0
-	fi
-
-	local device_config="$1"
-	json_setpath_inplace '"billDispenser", "recyclers"' "${number_of_recyclers}" "${device_config}"
 }
 
 get_osuser() {
@@ -383,49 +204,18 @@ configure_root() {
 	local rootfs="$1"
 
 	set -x
-	# copy machine-specific configs
-	local lmroot="${rootfs}/opt/lamassu-machine"
-	local device_config="${lmroot}/device_config.json"
-	cp "${lmroot}/hardware/codebase/${platform}/${model}/device_config.json" "${device_config}"
 
-	# set the correct printer
-	try_set_printer "${device_config}"
+	# TODO set the GenMega CDU license
+	#try_set_genmega_cdu_license "${device_config}"
 
-	try_set_number_of_cassettes "${device_config}"
-	try_set_number_of_recyclers "${device_config}"
+	# TODO install UVC quirk 0x80
+	#printf 'options uvcvideo quirks=0x80\n' > "${rootfs}/etc/modprobe.d/uvcvideo.conf"
 
-	# set the GenMega CDU license
-	try_set_genmega_cdu_license "${device_config}"
-
-	# copy model-specific supervisor configs
-	rm -rf "${rootfs}/etc/supervisor/conf.d/"
-	cp -r "${lmroot}/hardware/system/${platform}/${model}/supervisor/conf.d/" -t "${rootfs}/etc/supervisor/"
-	local user=''; user="$(get_osuser)"
-	sed -i "s|^user=.*$|user=${user}|;" "${rootfs}/etc/supervisor/conf.d/lamassu-browser.conf"
-
-	# copy model-specific udev rules
-	rm -f "${rootfs}"/etc/udev/rules.d/99-*.rules
-	cp -r "${lmroot}/hardware/system/${platform}/${model}"/udev/* -t "${rootfs}/etc/udev/rules.d/"
-
-	# install UVC quirk 0x80
-	printf 'options uvcvideo quirks=0x80\n' > "${rootfs}/etc/modprobe.d/uvcvideo.conf"
-
-	# enable EnvoyRPC systemd service
-	if [ "${model}" = 'grandola' ]; then
-		ln -sf "${rootfs}/etc/systemd/system/envoyrpc.service" "${rootfs}/etc/systemd/system/multi-user.target.wants/envoyrpc.service"
-		try_create_envoyrpc_license "${rootfs}"
-	fi
-
-	# copy calibrate-screen.sh
-	if [ -f "${lmroot}/hardware/system/${platform}/${model}/calibrate-screen.sh" ]; then
-		cp "${lmroot}/hardware/system/${platform}/${model}/calibrate-screen.sh" "${rootfs}/opt/calibrate-screen.sh"
-	else
-		echo "#!/usr/bin/env sh" > "${rootfs}/opt/calibrate-screen.sh"
-	fi
-	chmod 0755 "${rootfs}/opt/calibrate-screen.sh"
-
-	# install verify program
-	[ -f "${lmroot}/verify/verify" ] || cp -f "${lmroot}/verify/verify.amd64" "${lmroot}/verify/verify"
+	# TODO enable EnvoyRPC systemd service
+	#if [ "${model}" = 'grandola' ]; then
+	#	ln -sf "${rootfs}/etc/systemd/system/envoyrpc.service" "${rootfs}/etc/systemd/system/multi-user.target.wants/envoyrpc.service"
+	#	try_create_envoyrpc_license "${rootfs}"
+	#fi
 
 	set +x
 
@@ -452,26 +242,27 @@ find_partitions() {
 configure() {
 	settraps
 
-	local should_unmount=''
-	if [ -b "${device}" ]; then
-		# If device is a block device, mount ${device}*2 into ${rootfs}
-		find_partitions
-		local rootfs="/mnt/${rootpartition}"
-		mkdir -p "${rootfs}"
-		mount -t ext4 "${rootpartition}" "${rootfs}"
-		should_unmount=yes
-	elif [ -d "${device}" ]; then
-		# If it's a directory, just use it instead
-		rootfs="${device}"
-	else
-		echo >&2 "Unexpected error: '${device}' is neither a block device nor a directory!"
-		exit 1
-	fi
+	# TODO Re-enable configuration?
+	#local should_unmount=''
+	#if [ -b "${device}" ]; then
+	#	# If device is a block device, mount ${device}*2 into ${rootfs}
+	#	find_partitions
+	#	local rootfs="/mnt/${rootpartition}"
+	#	mkdir -p "${rootfs}"
+	#	mount -t ext4 "${rootpartition}" "${rootfs}"
+	#	should_unmount=yes
+	#elif [ -d "${device}" ]; then
+	#	# If it's a directory, just use it instead
+	#	rootfs="${device}"
+	#else
+	#	echo >&2 "Unexpected error: '${device}' is neither a block device nor a directory!"
+	#	exit 1
+	#fi
 
-	configure_root "${rootfs}"
-	if [ "${should_unmount}" = 'yes' ]; then
-		umount "${rootfs}"
-	fi
+	#configure_root "${rootfs}"
+	#if [ "${should_unmount}" = 'yes' ]; then
+	#	umount "${rootfs}"
+	#fi
 }
 
 flash_image() {
@@ -485,10 +276,13 @@ flash_image() {
 			application/gzip)
 				# shellcheck disable=SC2086
 				zcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
+			application/x-lzip)
+				# shellcheck disable=SC2086
+				lzip -cd "${image}" | dd of="${device}" bs=4M ${ddextra};;
 			application/x-xz)
 				# shellcheck disable=SC2086
 				xzcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
-			*)
+			application/x-iso9660-image|application/octet-stream|*)
 				# shellcheck disable=SC2086
 				dd if="${image}" of="${device}" bs=4M ${ddextra};;
 		esac
@@ -509,18 +303,6 @@ gpt_fix_partitions() {
 	sgdisk -d 2 -n 2:0:0 "${device}"
 }
 
-mbr_verify_disk() {
-	sfdisk -V "$1"
-}
-
-mbr_fix_partitions() {
-	# delete the root partition...
-	sfdisk --delete "$1" 2
-
-	# ... and recreate it using all the available space
-	echo ',,' | sfdisk --append "$1"
-}
-
 flash() {
 	cat >&2 <<EOF
 
@@ -530,17 +312,14 @@ At the end of this process a message will inform you that it has successfully fi
 If the script exits and you do not see that message, please contact our support.
 EOF
 
-	# The partition type of the installed image
-	local parttype=gpt
-
 	## Write image to disk
 	flash_image
 
 	## Fix things up
 
-	"${parttype}"_verify_disk "${device}"
+	gpt_verify_disk "${device}"
 
-	"${parttype}"_fix_partitions "${device}"
+	gpt_fix_partitions "${device}"
 
 	partprobe "${device}"
 
@@ -571,7 +350,7 @@ EOF
 	# resize filesystem to use all space available in the partition
 	resize2fs "${rootpartition}"
 
-	"${parttype}"_verify_disk "${device}"
+	gpt_verify_disk "${device}"
 
 	set +x
 
@@ -587,20 +366,10 @@ install() {
 	echo >&2 'All went well, please reboot now.'
 }
 
-set_image_by_platform_model() {
+set_image() {
 	# shellcheck disable=SC2154
-	case "${platform}" in
-		upboard)
-			image="${ubilinux_image}"
-			image_release_number="${UBILINUX_RELEASE_NUMBER}"
-			image_machine_version="${UBILINUX_MACHINE_VERSION}"
-			;;
-		*)
-			image="${xubuntu_image}"
-			image_release_number="${LMX_RELEASE_NUMBER}"
-			image_machine_version="${LMX_MACHINE_VERSION}"
-			;;
-	esac
+	#image_release_number="${LMX_RELEASE_NUMBER}"
+	#image_machine_version="${LMX_MACHINE_VERSION}"
 }
 
 tui() {
@@ -627,8 +396,8 @@ tui_subcmd() {
 	if [ "${image_machine_version}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${image_machine_version}"; fi
 	tui --title 'What do you wish to do?' --clear \
 		--menu "${menumsg}" 0 0 0 \
-		'install' 'Install a Lamassu machine (i.e., flash and configure)' \
-		'configure' 'Configure an already-installed Lamassu machine'
+		'install' 'Install a Lamassu machine (i.e., flash and configure)' #\
+		#'configure' 'Configure an already-installed Lamassu machine'
 }
 
 tui_device() {
@@ -659,91 +428,6 @@ END {
 		${entries}
 }
 
-tui_platform() {
-	tui --title 'Choose a platform/maker' --clear \
-		--menu 'Choose the platform/maker of your machine' 0 0 0 \
-		up4000 'Lamassu machine with Aaeon UP4000 board' \
-		upboard 'Lamassu machine with Aaeon UP board' \
-		acp 'Lamassu machine with Aaeon ACP tablet' \
-		coincloud 'CoinCloud machine' \
-		generalbytes 'General Bytes machine' \
-		genmega 'GenMega machine'
-}
-
-tui_model_() {
-	tui --title 'Choose a model' --clear --notags \
-		--menu 'Choose the model of your machine' 0 0 0 \
-		"$@"
-}
-
-tui_model() {
-	case "${platform}" in
-		up4000) tui_model_ \
-			aveiro 'Aveiro' \
-			gaia 'Gaia' \
-			grandola 'Grândola' \
-			tejo 'Tejo' \
-			sintra 'Sintra' \
-			;;
-
-		upboard) tui_model_ \
-			gaia 'Gaia' \
-			tejo 'Tejo' \
-			sintra 'Sintra' \
-			;;
-
-		acp) tui_model_ \
-			douro 'Douro' \
-			;;
-
-		coincloud) tui_model_ \
-			jcm-ipro-rc 'JCM iPro RC' \
-			mei-bnr 'MEI BNR' \
-			mei-scr 'MEI SCR' \
-			;;
-
-		genmega) tui_model_ \
-			gmuk1 'Universal Kiosk 1' \
-			gmuk2 'Universal Kiosk 2' \
-			gemini 'Gemini' \
-			wallkiosk 'Wall Kiosk' \
-			;;
-
-		generalbytes) tui_model_ \
-			batm7in 'BATM Two (7" screen)' \
-			batm3 'BATM Three' \
-			;;
-
-		*)
-			echo >&2 "Unknown/Unsupported platform ${platform}"
-			exit 1;;
-	esac
-}
-
-tui_printer() {
-	local entries=''
-	if [ "${platform}" = 'genmega' ]; then
-		entries='genmega genmega'
-	else
-		entries='Nippon-2511D-2 Nippon-2511D-2 Zebra-KR-403 Zebra-KR-403'
-	fi
-	# shellcheck disable=SC2086
-	tui --title 'Choose a printer model' --clear \
-		--menu 'Select the model of printer your machine features, if any.' 0 0 0 \
-		None None \
-		${entries}
-}
-
-tui_number_of_cassettes() {
-	tui --title 'Number of cassettes' \
-		--inputbox 'Please input the number of cassettes.' 0 0
-}
-
-tui_number_of_recyclers() {
-	tui --title 'Number of recyclers' \
-		--inputbox 'Please input the number of recyclers.' 0 0
-}
-
 tui_input_arca_key() {
 	tui --title 'ARCA key' --clear \
 		--inputbox 'Please type in your ARCA key.' 0 0
@@ -772,18 +456,6 @@ tui_confirmation() {
 		image_machine_version_line="Lamassu machine version: ${image_machine_version}\n"
 	fi
 
-	local number_of_cassettes_line=''
-	# shellcheck disable=SC2310
-	if check_number "${number_of_cassettes}"; then
-		number_of_cassettes_line="Number of cassettes: ${number_of_cassettes}\n"
-	fi
-
-	local number_of_recyclers_line=''
-	# shellcheck disable=SC2310
-	if check_number "${number_of_recyclers}"; then
-		number_of_recyclers_line="Number of recyclers: ${number_of_recyclers}\n"
-	fi
-
 	local arca_key_line=''
 	if [ "${ARCA_KEY}" != '' ]; then
 		arca_key_line="ARCA key: ${ARCA_KEY}\n"
@@ -806,12 +478,6 @@ Device: ${device}
 ${image_release_number_line}\
 ${image_machine_version_line}\
 
-Platform: ${platform}
-Model: ${model}
-Printer: ${printer}
-${number_of_cassettes_line}\
-${number_of_recyclers_line}\
-
 ${arca_key_line}\
 ${gm_cdu_line}\
 " 0 0
@@ -826,47 +492,6 @@ tui_msgbox() {
 guided_pick_device() {
 	device="$(tui_device)"
 	handle_tui_return $?
-}
-
-guided_pick_platform() {
-	platform="$(tui_platform)"
-	handle_tui_return $?
-}
-
-guided_pick_model() {
-	model="$(tui_model)"
-	handle_tui_return $?
-}
-
-guided_pick_printer() {
-	printer="$(tui_printer)"
-	handle_tui_return $?
-}
-
-guided_pick_number_of_cassettes() {
-	case "${model}" in
-		aveiro|tejo);;
-		*) return 0;;
-	esac
-
-	# shellcheck disable=SC2310
-	until check_number "${number_of_cassettes}"; do
-		number_of_cassettes="$(tui_number_of_cassettes)"
-		handle_tui_return $?
-	done
-}
-
-guided_pick_number_of_recyclers() {
-	case "${model}" in
-		aveiro|grandola);;
-		*) return 0;;
-	esac
-
-	# shellcheck disable=SC2310
-	until check_number "${number_of_recyclers}"; do
-		number_of_recyclers="$(tui_number_of_recyclers)"
-		handle_tui_return $?
-	done
 }
 
 guided_input_arca_key() {
@@ -890,13 +515,8 @@ guided_confirmation() {
 
 guided_configure() {
 	guided_pick_device
-	guided_pick_platform
-	guided_pick_model
-	guided_pick_printer
-	guided_pick_number_of_cassettes
-	guided_pick_number_of_recyclers
-	guided_input_arca_key
-	guided_input_genmega_cdu_license
+	#guided_input_arca_key
+	#guided_input_genmega_cdu_license
 
 	# shellcheck disable=SC2310
 	if guided_confirmation; then
@@ -906,15 +526,11 @@ guided_configure() {
 
 guided_install() {
 	guided_pick_device
-	guided_pick_platform
-	guided_pick_model
-	guided_pick_printer
-	guided_pick_number_of_cassettes
-	guided_pick_number_of_recyclers
-	guided_input_arca_key
-	guided_input_genmega_cdu_license
+	#guided_input_arca_key
+	#guided_input_genmega_cdu_license
 
-	set_image_by_platform_model
+	set_image
+
 	# shellcheck disable=SC2310
 	if guided_confirmation; then
 		install
@@ -946,7 +562,7 @@ guided() {
 }
 
 prepare_alpine() {
-	apk add sfdisk sgdisk
+	apk add sgdisk
 }
 
 prepare_debian_like() {
@@ -971,7 +587,7 @@ prepare() {
 
 subcmd="$1"
 case "${subcmd}" in
-	install|configure|guided)
+	install|guided)
 		shift 1
 		"parse_args_${subcmd}" "$@" || "usage_${subcmd}"
 		set -x
