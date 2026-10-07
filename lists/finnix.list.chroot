@@ -20,40 +20,19 @@ bc
 bcache-tools
 bind9-dnsutils
 bind9-host
-bonnie++
 bridge-utils
 btrfs-progs
 buffer
 bzip2
 cabextract
 ca-certificates
-cdpr
-chntpw
-cifs-utils
-{%- if ARCH == "amd64" %}
-cmospwd
-{%- endif %}
 console-data
 console-setup
 cpio
-cpu-checker
-{%- if ARCH == "amd64" %}
-cpuid
-{%- endif %}
 cron
-cryptsetup-bin
 curl
 dbus
-dc3dd
 debootstrap
-{%- if ARCH != "ppc64el" and ARCH != "s390x" %}
-dmidecode
-{%- endif %}
-dosfstools
-dselect
-dump
-ed
-edid-decode
 {%- if ARCH != "ppc64el" and ARCH != "s390x" %}
 efibootmgr
 efivar
@@ -63,35 +42,23 @@ eject
 elinks
 etherwake
 ethtool
-exfat-fuse
-exfatprogs
-f2fs-tools
 fdutils
 fetchmail
 file
-finger
-fsarchiver
-{%- if ARCH == "amd64" %}
-fuseext2
-{%- endif %}
-fxload
 gawk
 gddrescue
 gdisk
 gdu
 genromfs
-git
 gpart
 gpg-agent
 gpm
 grepcidr
 hdparm
-hexedit
 hfsutils
 htop
 iftop
 inetutils-telnet
-inxi
 iotop
 iozone3
 ipcalc
@@ -100,12 +67,9 @@ ipmitool
 iptables
 iptraf-ng
 iputils-ping
-irssi
 isomd5sum
 iw
 jfsutils
-joe
-jove
 kbd
 keyboard-configuration
 keyutils
@@ -118,9 +82,6 @@ libc6-i386
 lldpd
 lm-sensors
 locales
-lpr
-lrzip
-lrzsz
 lsb-release
 lshw
 lsof
@@ -133,40 +94,22 @@ lzip
 lzop
 man-db
 mbr
-mc
-mdadm
-memtester
-minicom
-mscompress
-mtools
-mtr-tiny
-mt-st
-nano
-ncal
 ncat
-ncdu
 netcat-openbsd
 netcat-traditional
 net-tools
 nicstat
 ninvaders
 nmap
-ntfs-3g
 ntpsec-ntpdate
 ntpsec-ntpdig
 nvme-cli
 nwipe
-nyancat
-oathtool
-openssh-client
-openssh-server
-openvpn
 partclone
 parted
 patch
 pciutils
 pcmciautils
-picocom
 powermgmt-base
 pppconfig
 pppoe
@@ -178,15 +121,9 @@ pwgen
 quota
 quotatool
 ranger
-rdate
 rdiff-backup
 rename
-rlwrap
-rmlint
-robotfindskitten
-rover
 rsync
-screen
 sdparm
 setserial
 sharutils
