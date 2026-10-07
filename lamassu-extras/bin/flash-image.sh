@@ -30,7 +30,7 @@ usage_install() {
 usage: ${progname} install ${device} ${image}
 
 If this is an UP board, DEVICE is likely /dev/mmcblk0.
-IMAGE is an image (uncompressed ISO/WIC, gzipped, lzipped, or xzipped) or - to read from stdin.
+IMAGE is an image (uncompressed ISO/WIC, gzip, zstd, lzip, or xz) or - to read from stdin.
 
 WARNING: Be sure to specify the correct DEVICE, it will be overwritten!
 
@@ -51,7 +51,7 @@ usage: ${progname} guided ${image}
 
 This subcommand presents the user with an interactive menu that they can follow, as an alternative to the other subcommands.
 
-IMAGE is an image file (uncompressed ISO/WIC, gzipped, lzipped, or xzipped).
+IMAGE is an image file (uncompressed ISO/WIC, gzip, zstd, lzip, or xz).
 
 EOF
 	exit 1
@@ -276,6 +276,9 @@ flash_image() {
 			application/gzip)
 				# shellcheck disable=SC2086
 				zcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
+			application/zstd)
+				# shellcheck disable=SC2086
+				zstdcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
 			application/x-lzip)
 				# shellcheck disable=SC2086
 				lzip -cd "${image}" | dd of="${device}" bs=4M ${ddextra};;
