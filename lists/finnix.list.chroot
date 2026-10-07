@@ -133,7 +133,6 @@ smbclient
 snmp
 socat
 squashfs-tools
-sshfs
 strace
 stress
 stunnel4

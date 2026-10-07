@@ -9,8 +9,6 @@
 #     passwd=foo  (root assumed)
 #     passwd=root:foo passwd=finnix:bar
 #     passwd=root:$1$QnvsFWnz$MppFa1JL0xsMjB/VQwvwv.
-#
-# "sshd_password" is accepted as a legacy equivalent to "passwd"
 
 import os
 import re
@@ -42,7 +40,7 @@ def main():
 
     userpasses = []
     userpasses_encrypted = []
-    for userpass in [v for k, v in cmdline if k in ("passwd", "sshd_password") and v is not None]:
+    for userpass in [v for k, v in cmdline if k == "passwd" and v is not None]:
         if ":" not in userpass:
             userpass = "root:" + userpass
         username, password = userpass.split(":", 1)
