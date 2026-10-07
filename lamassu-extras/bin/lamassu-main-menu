@@ -3,7 +3,7 @@
 
 lamassu_bin_dir="$(dirname "$0")"
 
-IMAGE="$(realpath -e "${lamassu_bin_dir}/../ssuos.wic.gz")"
+IMAGE="$(realpath -e "${lamassu_bin_dir}/../ssuos.wic.lz")"
 #IMAGE_ENV="$(realpath -e "${lamassu_bin_dir}/../ssuos.env")"
 #RELEASE_NUMBER="$(grep '^RELEASE_NUMBER=' "${IMAGE_ENV}" | cut -d= --complement -f1)"; export RELEASE_NUMBER
 #MACHINE_VERSION="$(grep '^MACHINE_VERSION=' "${IMAGE_ENV}" | cut -d= --complement -f1)"; export MACHINE_VERSION

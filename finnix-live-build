@@ -131,7 +131,7 @@ if [ "${ARCH}" = "amd64" ]; then
     BINARY_IMAGES="iso-hybrid"
     BOOTLOADERS="grub-efi,syslinux"
     ISO_FILENAME="${PRODUCT_ID}-${ARCH}.hybrid.iso"
-    MEMTEST="memtest86+"
+    MEMTEST="none"
     SQUASHFS_COMP="xz -Xbcj x86"
 elif [ "${ARCH}" = "arm64" ]; then
     BINARY_IMAGES="iso-hybrid"
@@ -433,16 +433,12 @@ mkdir -p "${LB_DIR}/config/package-lists"
 cp -a "${RENDER_DIR}/package-lists/." "${LB_DIR}/config/package-lists/"
 
 # Include images and scripts
-if [ ! -f "${LAMASSU_IMAGE_DIR}/xubuntu.img.gz" ]; then # Path to *.img.gz etc
-    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/xubuntu.img.gz' does not exist; cannot proceed."
-    exit 1
-fi
-if [ ! -f "${LAMASSU_IMAGE_DIR}/ubilinux.img.gz" ]; then # Path to *.img.gz etc
-    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/ubilinux.img.gz' does not exist; cannot proceed."
+if [ ! -f "${LAMASSU_IMAGE_DIR}/ssuos.wic.lz" ]; then # Path to *.wic.lz etc
+    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/ssuos.wic.lz' does not exist; cannot proceed."
     exit 1
 fi
 mkdir -p "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
-cp -a "${LAMASSU_EXTRAS}"/* "${LAMASSU_IMAGE_DIR}"/xubuntu.img.* "${LAMASSU_IMAGE_DIR}"/ubilinux.img.* "${LAMASSU_IMAGE_DIR}"/xubuntu.env "${LAMASSU_IMAGE_DIR}"/ubilinux.env -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
+cp -a "${LAMASSU_EXTRAS}"/* "${LAMASSU_IMAGE_DIR}/ssuos.wic.lz" -t "${LB_DIR}/config/includes.chroot_after_packages/opt/lamassu/"
 
 if [ "${is_dirty}" = "true" ]; then
     mkdir -p "${LB_DIR}/config/includes.binary/.disk"
