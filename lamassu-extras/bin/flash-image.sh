@@ -369,12 +369,6 @@ install() {
 	echo >&2 'All went well, please reboot now.'
 }
 
-set_image() {
-	# shellcheck disable=SC2154
-	#image_release_number="${LMX_RELEASE_NUMBER}"
-	#image_machine_version="${LMX_MACHINE_VERSION}"
-}
-
 tui() {
 	"${whiptail}" "$@" 3>&2 2>&1 1>&3 3>&-
 }
@@ -531,8 +525,6 @@ guided_install() {
 	guided_pick_device
 	#guided_input_arca_key
 	#guided_input_genmega_cdu_license
-
-	set_image
 
 	# shellcheck disable=SC2310
 	if guided_confirmation; then
