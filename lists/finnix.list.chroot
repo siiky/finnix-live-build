@@ -32,6 +32,7 @@ cron
 curl
 dbus
 debootstrap
+dosfstools
 {%- if ARCH != "ppc64el" and ARCH != "s390x" %}
 efibootmgr
 efivar
