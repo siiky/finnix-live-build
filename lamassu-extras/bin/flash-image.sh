@@ -162,7 +162,7 @@ flash_image_dd() {
 
 flash_image() {
 	if [ "${use_bmap}" = 'yes' ]; then
-		flash_image_bmap
+		flash_image_bmap || flash_image_dd
 	else
 		flash_image_dd
 	fi
