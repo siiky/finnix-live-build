@@ -6,6 +6,7 @@ set -e
 progname="$0"
 ddextra=''
 whiptail=''
+use_bmap='no'
 
 device='DEVICE'
 image='IMAGE'
@@ -63,17 +64,6 @@ parse_device() {
 	device="${arg}"
 }
 
-parse_directory() {
-	arg="$1"
-	[ -d "${arg}" ] || return 1
-	device="${arg}"
-}
-
-parse_device_or_directory() {
-	# shellcheck disable=SC2310
-	parse_device "$1" || parse_directory "$1"
-}
-
 parse_image_stdin() {
 	if [ "$1" != '-' ]; then return 1; fi
 	image="$1"
@@ -115,116 +105,11 @@ settraps() {
 		INT TERM EXIT
 }
 
-# TODO Grândola support
-# In the old process, the ARCA license was created after flashing, during the
-# configuration step; while the new configuration screen is used on first boot,
-# after flashing. However, we don't want to give OPs our ARCA activation key...
-try_create_envoyrpc_license() {
-	local rootfs="$1"
-
-	if [ "${ARCA_KEY}" = '' ]; then
-		cat >&2 <<EOF
-WARNING: Environment variable ARCA_KEY not set, WILL NOT create EnvoyRPC
-         license. You may set the ARCA_KEY environment variable and use the
-         configure subcommand of this script again to create the license.
-EOF
-		return 0
-	fi
-
-	cat >&2 <<EOF
-INFO: Will create the EnvoyRPC license in a moment. Please confirm the printed
-      license has the following pattern:
-
-LICENSE arca envoy 2 <date> uncounted hostid=<MAC address>
-  _ck=<hexadecimal digits> sig="<hexadecimal digits>
-  <hexadecimal digits>"
-EOF
-
-	# MAC Address
-	local interface=enp2s0
-	local hostid; hostid="$(sed 's|:||g;' "/sys/class/net/${interface}/address")"
-
-	local curl_reply=''
-	if ! curl_reply="$(curl 'http://license.arca.com/cgi-bin/arca_mklic' -X POST -H 'Content-Type: application/x-www-form-urlencoded' -H 'Origin: http://license.arca.com' --data-raw "akey=${ARCA_KEY}&hostid=${hostid}")"; then
-		echo >&2 'Failed to contact ARCA server to create a license...'
-		return 1
-	fi
-
-	if echo "${curl_reply}" | grep -qiw error; then
-		echo >&2 'ARCA server reply is likely an error...'
-		return 1
-	fi
-
-	if ! echo "${curl_reply}" | grep -qw LICENSE; then
-		echo >&2 'ARCA server reply likely does not contain the license!'
-		return 1
-	fi
-
-	echo "${curl_reply}" \
-	 | sed '1s/.*<pre>//; /^<\/pre>/d' \
-	 | tee "${rootfs}/EnvoyRPC/htdocs/ac/license/envoyrpc.lic" >&2
-}
-
-# TODO GenMega w/ dispenser support
-# See try_create_envoyrpc_license
-try_set_genmega_cdu_license() {
-	if [ "${platform}" != 'genmega' ]; then
-		return 0
-	fi
-
-	if [ "${GENMEGA_CDU_LICENSE}" = '' ]; then
-		cat >&2 <<EOF
-WARNING: Environment variable GENMEGA_CDU_LICENSE not set, WILL NOT update
-         'device_config.json'. You may set the GENMEGA_CDU_LICENSE environment
-         variable and use the configure subcommand of this script again to
-         update it.
-EOF
-		return 0
-	fi
-
-	local device_config="$1"
-	json_setpath_inplace '"billDispenser", "license"' '"'"${GENMEGA_CDU_LICENSE}"'"' "${device_config}"
-}
-
-get_osuser() {
-	case "${platform}" in
-		upboard) echo 'ubilinux';;
-		*) echo 'lamassu';;
-	esac
-}
-
-json_setpath_inplace() {
-	local path="$1"
-	local value="$2"
-	local file="$3"
-	jq "setpath([${path}]; ${value})" "${file}" | sponge "${file}"
-}
-
-configure_root() {
-	local rootfs="$1"
-
-	set -x
-
-	# TODO set the GenMega CDU license
-	#try_set_genmega_cdu_license "${device_config}"
-
-	# TODO install UVC quirk 0x80
-	#printf 'options uvcvideo quirks=0x80\n' > "${rootfs}/etc/modprobe.d/uvcvideo.conf"
-
-	# TODO enable EnvoyRPC systemd service
-	#if [ "${model}" = 'grandola' ]; then
-	#	ln -sf "${rootfs}/etc/systemd/system/envoyrpc.service" "${rootfs}/etc/systemd/system/multi-user.target.wants/envoyrpc.service"
-	#	try_create_envoyrpc_license "${rootfs}"
-	#fi
-
-	set +x
-
-	echo >&2 'Finished configuring the machine.'
-}
-
 find_partitions() {
 	bootpartition=''
-	rootpartition=''
+	rootapartition=''
+	rootbpartition=''
+	datapartition=''
 
 	if [ ! -b "${device}" ]; then
 		return 1
@@ -233,39 +118,19 @@ find_partitions() {
 	for part in $(lsblk -prn -o NAME -Q 'TYPE=="part"' "${device}"); do
 		case "${part}" in
 			"${device}1"|"${device}p1") bootpartition="${part}";;
-			"${device}2"|"${device}p2") rootpartition="${part}";;
+			"${device}2"|"${device}p2") rootapartition="${part}";;
+			"${device}3"|"${device}p3") rootbpartition="${part}";;
+			"${device}4"|"${device}p4") datapartition="${part}";;
 			*);; # TODO: error out? we expect exactly 2 partitions
 		esac
 	done
 }
 
-configure() {
-	settraps
-
-	# TODO Re-enable configuration?
-	#local should_unmount=''
-	#if [ -b "${device}" ]; then
-	#	# If device is a block device, mount ${device}*2 into ${rootfs}
-	#	find_partitions
-	#	local rootfs="/mnt/${rootpartition}"
-	#	mkdir -p "${rootfs}"
-	#	mount -t ext4 "${rootpartition}" "${rootfs}"
-	#	should_unmount=yes
-	#elif [ -d "${device}" ]; then
-	#	# If it's a directory, just use it instead
-	#	rootfs="${device}"
-	#else
-	#	echo >&2 "Unexpected error: '${device}' is neither a block device nor a directory!"
-	#	exit 1
-	#fi
-
-	#configure_root "${rootfs}"
-	#if [ "${should_unmount}" = 'yes' ]; then
-	#	umount "${rootfs}"
-	#fi
+flash_image_bmap() {
+	bmaptool copy "${image}" "${device}"
 }
 
-flash_image() {
+flash_image_dd() {
 	if [ "${image}" = '-' ]; then
 		set -x
 		# shellcheck disable=SC2086
@@ -276,6 +141,9 @@ flash_image() {
 			application/gzip)
 				# shellcheck disable=SC2086
 				zcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
+			application/x-lz4)
+				# shellcheck disable=SC2086
+				lz4cat "${image}" | dd of="${device}" bs=4M ${ddextra};;
 			application/zstd)
 				# shellcheck disable=SC2086
 				zstdcat "${image}" | dd of="${device}" bs=4M ${ddextra};;
@@ -292,6 +160,14 @@ flash_image() {
 	fi
 }
 
+flash_image() {
+	if [ "${use_bmap}" = 'yes' ]; then
+		flash_image_bmap
+	else
+		flash_image_dd
+	fi
+}
+
 gpt_verify_disk() {
 	sgdisk -v "$1"
 }
@@ -300,10 +176,30 @@ gpt_fix_partitions() {
 	# move GPT partition to end
 	sgdisk -e "${device}"
 
-	# resize partition to use all space available in disk
-	#  -d 2  deletes the partition 2
-	#  -n 2:0:0  recreates partition 2, using the default start/end values -- start is the same as the old partition; end is the maximum available
-	sgdisk -d 2 -n 2:0:0 "${device}"
+	# resize data partition to use all remaining space available in disk
+	#  -d 4  deletes the partition 4
+	#  -n 4:0:0  recreates partition 4, using the default start/end values -- start is the same as the old partition; end is the maximum available
+	sgdisk -d 4 -n 4:0:0 "${device}"
+}
+
+fix_ext4_partition() {
+	local partition="$1"
+	set +e
+	fsck -V -f -y "${partition}"
+	case $? in
+		0|1) ;;
+		*) exit $?;;
+	esac
+
+	e2fsck -v -f -y "${partition}"
+	case $? in
+		0|1) ;;
+		*) exit $?;;
+	esac
+	set -e
+
+	# resize filesystem to use all space available in the partition
+	resize2fs "${partition}"
 }
 
 flash() {
@@ -336,22 +232,11 @@ EOF
 		*) exit $?;;
 	esac
 
-	fsck -V -f -y "${rootpartition}"
-	case $? in
-		0|1) ;;
-		*) exit $?;;
-	esac
-
-	e2fsck -v -f -y "${rootpartition}"
-	case $? in
-		0|1) ;;
-		*) exit $?;;
-	esac
-
 	set -e
 
-	# resize filesystem to use all space available in the partition
-	resize2fs "${rootpartition}"
+	for partition in "${rootapartition}" "${rootbpartition}" "${datapartition}"; do
+		fix_ext4_partition "${partition}"
+	done
 
 	gpt_verify_disk "${device}"
 
@@ -360,11 +245,9 @@ EOF
 	echo >&2 'The image has been successfully installed. It is safe to reboot the machine now, even if the configuration step fails.'
 }
 
-# device image machine printer
 install() {
 	settraps
 	flash
-	configure
 	echo >&2
 	echo >&2 'All went well, please reboot now.'
 }
@@ -393,8 +276,7 @@ tui_subcmd() {
 	if [ "${image_machine_version}" != '' ]; then menumsg="${menumsg}\nLamassu machine version: ${image_machine_version}"; fi
 	tui --title 'What do you wish to do?' --clear \
 		--menu "${menumsg}" 0 0 0 \
-		'install' 'Install a Lamassu machine (i.e., flash and configure)' #\
-		#'configure' 'Configure an already-installed Lamassu machine'
+		'install' 'Install a Lamassu machine' #\
 }
 
 tui_device() {
@@ -425,18 +307,6 @@ END {
 		${entries}
 }
 
-tui_input_arca_key() {
-	tui --title 'ARCA key' --clear \
-		--inputbox 'Please type in your ARCA key.' 0 0
-}
-
-tui_input_genmega_cdu_license() {
-	tui --title 'GenMega CDU license' --clear \
-		--inputbox 'Please type in your GenMega CDU license.
-
-If your machine is one-way, you may leave it empty.' 0 0
-}
-
 tui_confirmation() {
 	local image_file_line=''
 	if [ "${image}" != 'IMAGE' ]; then
@@ -453,16 +323,6 @@ tui_confirmation() {
 		image_machine_version_line="Lamassu machine version: ${image_machine_version}\n"
 	fi
 
-	local arca_key_line=''
-	if [ "${ARCA_KEY}" != '' ]; then
-		arca_key_line="ARCA key: ${ARCA_KEY}\n"
-	fi
-
-	local gm_cdu_line=''
-	if [ "${GENMEGA_CDU_LICENSE}" != '' ]; then
-		gm_cdu_line="GenMega CDU license: ${GENMEGA_CDU_LICENSE}\n"
-	fi
-
 	tui --title 'Do you wish to proceed?' --clear \
 		--yes-button "Yes, ${subcmd}" --defaultno \
 		--yesno "\
@@ -474,9 +334,6 @@ ${image_file_line}\
 Device: ${device}
 ${image_release_number_line}\
 ${image_machine_version_line}\
-
-${arca_key_line}\
-${gm_cdu_line}\
 " 0 0
 }
 
@@ -491,40 +348,13 @@ guided_pick_device() {
 	handle_tui_return $?
 }
 
-guided_input_arca_key() {
-	if [ "${model}" = 'grandola' ]; then
-		ARCA_KEY="$(tui_input_arca_key)"
-		handle_tui_return $?
-	fi
-}
-
-guided_input_genmega_cdu_license() {
-	if [ "${platform}" = 'genmega' ]; then
-		GENMEGA_CDU_LICENSE="$(tui_input_genmega_cdu_license)"
-		handle_tui_return $?
-	fi
-}
-
 guided_confirmation() {
 	tui_confirmation
 	handle_tui_return $?
 }
 
-guided_configure() {
-	guided_pick_device
-	#guided_input_arca_key
-	#guided_input_genmega_cdu_license
-
-	# shellcheck disable=SC2310
-	if guided_confirmation; then
-		configure
-	fi
-}
-
 guided_install() {
 	guided_pick_device
-	#guided_input_arca_key
-	#guided_input_genmega_cdu_license
 
 	# shellcheck disable=SC2310
 	if guided_confirmation; then
@@ -578,6 +408,11 @@ prepare() {
 		debian|ubuntu|linuxmint|'"finnix"') prepare_debian_like;;
 		*) echo >&2 'OS is unknown. Will proceed but unexpected results may occur!';;
 	esac
+
+	# Check if bmaptool exists
+	if command -v -- bmaptool >/dev/null; then
+		use_bmap='yes'
+	fi
 }
 
 subcmd="$1"
