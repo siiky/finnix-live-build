@@ -19,6 +19,7 @@ bc
 bcache-tools
 bind9-dnsutils
 bind9-host
+bmaptool
 bridge-utils
 btrfs-progs
 buffer
