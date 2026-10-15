@@ -433,8 +433,8 @@ mkdir -p "${LB_DIR}/config/package-lists"
 cp -a "${RENDER_DIR}/package-lists/." "${LB_DIR}/config/package-lists/"
 
 # Include images and scripts
-if [ ! -f "${LAMASSU_IMAGE_DIR}/ssuos.wic.lz4" ]; then # Path to *.wic.lz4 etc
-    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/ssuos.wic.lz4' does not exist; cannot proceed."
+if [ ! -f "${LAMASSU_IMAGE_DIR}/ssuos.wic.zst" ]; then # Path to *.wic.zst etc
+    echo >&2 "Image file '${LAMASSU_IMAGE_DIR}/ssuos.wic.zst' does not exist; cannot proceed."
     exit 1
 fi
 if [ ! -f "${LAMASSU_IMAGE_DIR}/ssuos.wic.bmap" ]; then # Path to *.wic.bmap etc
