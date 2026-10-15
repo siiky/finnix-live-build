@@ -179,7 +179,8 @@ gpt_fix_partitions() {
 	# resize data partition to use all remaining space available in disk
 	#  -d 4  deletes the partition 4
 	#  -n 4:0:0  recreates partition 4, using the default start/end values -- start is the same as the old partition; end is the maximum available
-	sgdisk -d 4 -n 4:0:0 "${device}"
+	#  -c 4:ssuos-data  name this partition ssuos-data
+	sgdisk -d 4 -n 4:0:0 -c 4:ssuos-data "${device}"
 }
 
 fix_ext4_partition() {
